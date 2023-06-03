@@ -12,15 +12,15 @@ use crate::dado_papete::DadoPapete;
 use crate::movimento::Movimento;
 
 use std::{
-    todo,
     borrow::Cow,
     io,
     sync::{
-        mpsc::{self, TryRecvError,Receiver, Sender},
+        mpsc::{self, Receiver, Sender, TryRecvError},
         Arc, Mutex,
     },
     thread,
     time::Duration,
+    todo,
 };
 
 pub struct Papete {
@@ -35,15 +35,20 @@ impl Papete {
             transmissores_fim: Arc::new(Mutex::new(Vec::with_capacity(2))),
         }
     }
-    
+
     #[allow(dead_code)]
     pub fn obter_movimento(&self) -> Movimento {
         todo!()
     }
-    
+
     #[allow(dead_code)]
     pub fn obter_conexoes(&self) -> Vec<Conexao> {
-        todo!()
+        (*self.transmissores_fim.lock().unwrap()).iter().map(|x| x.0.clone()).collect()
+    }
+
+    #[allow(dead_code)]
+    pub fn obter_dados(&self) -> (Option<DadoPapete>, Option<DadoPapete>) {
+        self.dados.lock().unwrap().clone()
     }
 
     pub fn listar_conexoes_disponiveis(&self) -> Vec<Conexao> {
@@ -61,26 +66,26 @@ impl Papete {
         dados: Arc<Mutex<(Option<DadoPapete>, Option<DadoPapete>)>>,
         transmissores_fim: Arc<Mutex<Vec<(Conexao, Option<Sender<()>>)>>>,
     ) {
+        let mut serial_buf: Vec<u8> = vec![0; 1000];
         loop {
-            println!("{}", transmissores_fim.lock().unwrap().len());
-            let mut serial_buf: Vec<u8> = vec![0; 1000];
             match porta.read(serial_buf.as_mut_slice()) {
                 Ok(t) => {
-                    //io::stdout().write_all(&serial_buf[..t]).unwrap()
-                    if let Ok(s) = std::str::from_utf8(&serial_buf[..t]){
-                        if let Ok(dado) = DadoPapete::try_from(s){
-                            if dado.lado_esq{
+                    if let Ok(s) = std::str::from_utf8(&serial_buf[..t]) {
+                        if let Ok(dado) = DadoPapete::try_from(s) {
+                            if dado.lado_esq {
                                 dados.lock().unwrap().0 = Some(dado);
-                            }
-                            else {
+                            } else {
                                 dados.lock().unwrap().1 = Some(dado);
                             }
                         }
                     }
-                },
+                }
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                 Err(e) => {
                     println!("Desconectado por erro {}", e);
+                    //nula ambos os valores, como não sabe qual é
+                    *dados.lock().unwrap() = (None, None);
+
                     //localiza pos dessa conexao na lista
                     let pos = if let Some(index) =
                         transmissores_fim.lock().unwrap().iter().position(|x| {
@@ -104,9 +109,6 @@ impl Papete {
                 }
             }
 
-            //só durante desenvolvimento, depois pode retirar
-            thread::sleep(Duration::from_millis(500));
-
             match receptor_fim.try_recv() {
                 Ok(_) | Err(TryRecvError::Disconnected) => {
                     break;
@@ -129,7 +131,7 @@ impl Papete {
                             .lock()
                             .unwrap()
                             .push((Conexao::USB(nome_porta.clone()), Some(tx)));
-                        
+
                         let ref_a_lista = Arc::clone(&self.transmissores_fim);
                         let ref_a_dados = Arc::clone(&self.dados);
 

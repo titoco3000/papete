@@ -39,26 +39,23 @@ mod movimento;
 mod papete;
 
 use papete::Papete;
-use std::io;
+use std::thread;
+use std::time::Duration;
 fn main() {
-    {
-        let mut papete = Papete::new();
-        loop {
-            let portas_disponiveis = papete.listar_conexoes_disponiveis();
-            println!("{:?}", portas_disponiveis);
-            if portas_disponiveis.len() > 0 {
-                papete.conectar(portas_disponiveis[0].clone());
+    let mut papete = Papete::new();
+    loop {
+        let portas_disponiveis = papete.listar_conexoes_disponiveis();
+        if portas_disponiveis.len() > 0 {
+            if papete.conectar(portas_disponiveis[0].clone()) {
+                println!("Papete conectada em {:?}", portas_disponiveis[0]);
                 break;
             }
         }
-        //aguarda input
-        let mut user_input = String::new();
-        let stdin = io::stdin();
-        stdin.read_line(&mut user_input).unwrap();
     }
-    println!("drop");
-    //aguarda input
-    let mut user_input = String::new();
-    let stdin = io::stdin();
-    stdin.read_line(&mut user_input).unwrap();
+    loop {
+        //só durante desenvolvimento, depois pode retirar
+        thread::sleep(Duration::from_millis(500));
+
+        println!("{:?}", papete.obter_dados());
+    }
 }

@@ -19,7 +19,7 @@ impl Movimento {
             Self::Inversao => "Inversao",
         }
     }
-    
+
     pub fn str_completa(&self) -> &str {
         match self {
             Self::Dorsiflexao => "Dorsiflexão",
@@ -29,7 +29,7 @@ impl Movimento {
             Self::Inversao => "Inversão",
         }
     }
-    
+
     #[allow(dead_code)]
     pub fn como_entrada_nn(&self) -> &[f32] {
         match self {
