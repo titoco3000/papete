@@ -1,5 +1,6 @@
-use crate::csv_helper;
+use crate::dado_papete::DadoPapete;
 use crate::movimento::Movimento;
+use crate::previsor::Previsor;
 
 use rustlearn::multiclass::OneVsRestWrapper;
 use rustlearn::prelude::*;
@@ -8,7 +9,7 @@ use rustlearn::trees::decision_tree::{DecisionTree, Hyperparameters};
 pub struct Arvore(OneVsRestWrapper<DecisionTree>);
 
 impl Arvore {
-    pub fn read_file(endereco: &str) -> Result<Arvore, &str> {
+    pub fn carregar(endereco: &str) -> Result<Arvore, &str> {
         if let Ok(contents) = std::fs::read_to_string(endereco) {
             match serde_json::from_str(&contents) {
                 Ok(r) => return Ok(Arvore(r)),
@@ -17,39 +18,56 @@ impl Arvore {
         }
         Err("Falha ao abrir o arquivo")
     }
-    #[allow(unused_variables)]
-    pub fn prever(&self, pitch: f32, roll: f32, pe_esq: bool) -> Movimento {
-        let norm = Array::from(&vec![Vec::from(csv_helper::normalizar(
-            pitch, roll, pe_esq,
-        ))]);
-        //println!("prevendo com norm: {:#?}",norm);
+
+    pub fn salvar(&self, endereco: &str) -> std::io::Result<()> {
+        let serialized = serde_json::to_string(&self.0).unwrap();
+
+        std::fs::write(endereco, serialized)
+    }
+
+    // pub fn prever(&self, pitch: f32, roll: f32, pe_esq: bool) -> Movimento {
+    //     let norm = Array::from(&vec![Vec::from(DadoPapete::basico(
+    //         pitch, roll, pe_esq
+    //     ).array_normalizado())]);
+    //     Movimento::try_from(self.0.predict(&norm).unwrap().get(0, 0) as i32).unwrap()
+    // }
+}
+impl Previsor for Arvore {
+    fn calcular_de_dataset(dataset: &[DadoPapete]) -> Arvore {
+        let mut model = Hyperparameters::new(3)
+            .min_samples_split(5)
+            .max_depth(40)
+            .one_vs_rest();
+
+        let entradas: Vec<Vec<f32>> = dataset
+            .iter()
+            .map(|x| Vec::from(x.array_normalizado()))
+            .collect();
+        let entradas = Array::from(&entradas);
+
+        let saidas: Vec<f32> = dataset
+            .iter()
+            .map(|x| x.movimento.unwrap().as_f32())
+            .collect();
+        let saidas = Array::from(saidas);
+
+        model.fit(&entradas, &saidas).unwrap();
+        Arvore(model)
+    }
+    fn prever(&self, entrada: DadoPapete) -> Movimento {
+        let norm = Array::from(&vec![Vec::from(entrada.array_normalizado())]);
         Movimento::try_from(self.0.predict(&norm).unwrap().get(0, 0) as i32).unwrap()
     }
-}
-
-pub fn calcular_de_dataset(endereco_dataset: &str, endereco_output: &str) {
-    let mut model = Hyperparameters::new(3)
-        .min_samples_split(5)
-        .max_depth(40)
-        .one_vs_rest();
-
-    let dados = csv_helper::carregar_dados(endereco_dataset).unwrap();
-
-    let entradas: Vec<Vec<f32>> = dados.iter().map(|x| x.normalizar_entrada()).collect();
-    let entradas = Array::from(&entradas);
-
-    let saidas: Vec<f32> = dados.iter().map(|x| x.movimento.as_f32()).collect();
-    let saidas = Array::from(saidas);
-
-    model.fit(&entradas, &saidas).unwrap();
-
-    let serialized = serde_json::to_string(&model).unwrap();
-
-    std::fs::write(endereco_output, serialized).expect("Erro ao escrever no arquivo");
-    let prediction = model.predict(&entradas).unwrap();
-    for i in 0..prediction.rows() {
-        if prediction.get(i, 0) != saidas.get(i, 0) {
-            println!("Erro {:?}", dados[i]);
-        }
+    fn prever_batch(&self, entrada: &[DadoPapete]) -> Vec<Movimento> {
+        let entrada: Vec<Vec<f32>> = entrada
+            .iter()
+            .map(|x| Vec::from(x.array_normalizado()))
+            .collect();
+        let norm = Array::from(&entrada);
+        self.0
+            .predict(&norm).unwrap().data()
+            .iter()
+            .map(|x| Movimento::try_from(*x as i32).unwrap())
+            .collect()
     }
 }

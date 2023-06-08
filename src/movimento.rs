@@ -60,9 +60,22 @@ impl Movimento {
             Self::Inversao => 4.0,
         }
     }
+    pub fn as_usize(&self)->usize{
+        match self {
+            Self::Dorsiflexao => 0,
+            Self::Flexao => 1,
+            Self::Repouso => 2,
+            Self::Eversao => 3,
+            Self::Inversao => 4,
+        }
+    }
+
+    pub fn todos()->[Movimento;5]{
+        [Self::Dorsiflexao,Self::Flexao,Self::Repouso,Self::Eversao,Self::Inversao]
+    }
 }
 
-#[derive(Debug, PartialEq, Eq,Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ParseMovimentoError;
 
 impl FromStr for Movimento {

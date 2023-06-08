@@ -37,6 +37,13 @@ impl DadoPapete {
             sessao: Some(sessao),
         }
     }
+    pub fn array_normalizado(&self) -> [f32; 3] {
+        [
+            self.pitch * 0.5 / std::f32::consts::PI + 0.5,
+            self.roll * 0.5 / std::f32::consts::PI + 0.5,
+            if self.lado_esq { 1.0 } else { 0.0 },
+        ]
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -85,6 +92,35 @@ impl TryFrom<&str> for DadoPapete {
                         }
                     }
                 }
+            } else {
+                let partes: Vec<&str> = value.split(";").collect();
+                if partes.len() >= 4 {
+                    if let Ok(pitch) = partes[0].parse::<f32>() {
+                        if let Ok(roll) = partes[1].parse::<f32>() {
+                            let pe_esq = if partes[2].starts_with("E") {
+                                true
+                            } else if partes[2].starts_with("D") {
+                                false
+                            } else {
+                                return Err(ParseDadoPapeteError);
+                            };
+                            if let Ok(movimento) = partes[3].parse::<Movimento>() {
+                                let sessao = if partes.len() == 5 {
+                                    if let Ok(sessao) = partes[4].parse::<u32>() {
+                                        sessao
+                                    } else {
+                                        return Err(ParseDadoPapeteError);
+                                    }
+                                } else {
+                                    0
+                                };
+                                return Ok(DadoPapete::completo(
+                                    pitch, roll, pe_esq, movimento, sessao,
+                                ));
+                            }
+                        }
+                    }
+                }
             }
         }
         Err(ParseDadoPapeteError)
@@ -93,10 +129,6 @@ impl TryFrom<&str> for DadoPapete {
 
 impl fmt::Display for DadoPapete {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "pitch: {:.6}\troll: {:.6}",
-            self.pitch, self.roll
-        )
+        write!(f, "pitch: {:.6}\troll: {:.6}", self.pitch, self.roll)
     }
 }

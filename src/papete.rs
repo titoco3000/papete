@@ -9,6 +9,7 @@ Precisa pedir de novo para conectar
 
 use crate::{
     arvore::Arvore, conexao::Conexao, csv_helper, dado_papete::DadoPapete, movimento::Movimento,
+    previsor::Previsor,
 };
 
 use std::{
@@ -28,7 +29,7 @@ pub struct Papete {
     transmissores_fim: Arc<Mutex<Vec<(Conexao, Option<Sender<()>>)>>>,
     transmissor_buscador_portas: Option<Sender<()>>,
     arvore: Arvore,
-    registrados: Vec<DadoPapete>,
+    pub registrados: Vec<DadoPapete>,
     sessao: Option<u32>,
 }
 
@@ -38,7 +39,7 @@ impl Papete {
             dados: Arc::new(Mutex::new((None, None))),
             transmissores_fim: Arc::new(Mutex::new(Vec::with_capacity(2))),
             transmissor_buscador_portas: None,
-            arvore: Arvore::read_file("arvore.JSON").unwrap(),
+            arvore: Arvore::carregar("arvore.JSON").unwrap(),
             registrados: Vec::new(),
             sessao: None,
         }
@@ -47,9 +48,11 @@ impl Papete {
     pub fn obter_movimento(&self) -> Movimento {
         let dados = self.dados.lock().unwrap();
         if let Some(esq) = dados.0 {
-            self.arvore.prever(esq.pitch, esq.roll, esq.lado_esq)
+            self.arvore
+                .prever(DadoPapete::basico(esq.pitch, esq.roll, esq.lado_esq))
         } else if let Some(dir) = dados.1 {
-            self.arvore.prever(dir.pitch, dir.roll, dir.lado_esq)
+            self.arvore
+                .prever(DadoPapete::basico(dir.pitch, dir.roll, dir.lado_esq))
         } else {
             Movimento::Repouso
         }
