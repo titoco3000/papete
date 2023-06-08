@@ -1,4 +1,4 @@
-use std::{fmt, str::FromStr};
+use std::{fmt, str::FromStr, clone};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Movimento {
@@ -30,6 +30,16 @@ impl Movimento {
         }
     }
 
+    pub fn descricao(&self) -> &str {
+        match self {
+            Self::Dorsiflexao => "levantar ponta do pé",
+            Self::Flexao => "levantar o calcanhar",
+            Self::Repouso => "pés completamente apoiados no chão",
+            Self::Eversao => "pés inclinados para dentro",
+            Self::Inversao => "pés inclinados para fora",
+        }
+    }
+
     #[allow(dead_code)]
     pub fn como_entrada_nn(&self) -> &[f32] {
         match self {
@@ -40,9 +50,19 @@ impl Movimento {
             Self::Inversao => &[0.0, 0.0, 0.0, 0.0, 1.0],
         }
     }
+
+    pub fn as_f32(&self) -> f32 {
+        match self {
+            Self::Dorsiflexao => 0.0,
+            Self::Flexao => 1.0,
+            Self::Repouso => 2.0,
+            Self::Eversao => 3.0,
+            Self::Inversao => 4.0,
+        }
+    }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq,Clone)]
 pub struct ParseMovimentoError;
 
 impl FromStr for Movimento {
@@ -54,6 +74,7 @@ impl FromStr for Movimento {
             Self::Flexao,
             Self::Repouso,
             Self::Eversao,
+            Self::Inversao,
         ] {
             if variante.str_simplificada() == s || variante.str_completa() == s {
                 return Ok(variante);

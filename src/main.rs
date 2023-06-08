@@ -1,61 +1,79 @@
-/*
-Como eu pretendo usar:
-Objeto Papete;
-papete.listarConexoes
-papete.conectar
-papete.movimentoAtual
-
- */
-
-// pub mod movimento;
-
-// use rustlearn::multiclass::OneVsRestWrapper;
-// use rustlearn::{datasets::iris, trees::decision_tree::DecisionTree};
-// use rustlearn::prelude::*;
-// use rustlearn::trees::decision_tree::Hyperparameters;
-
-// fn main() {
-//     let (x, y) = iris::load_data();
-
-//     let mut model = Hyperparameters::new(5)
-//         .min_samples_split(5)
-//         .max_depth(40)
-//         .one_vs_rest();
-
-//     model.fit(&x, &y).unwrap();
-
-//     let serialized = serde_json::to_string(&model).unwrap();
-
-//     let _deserialized:OneVsRestWrapper<DecisionTree> = serde_json::from_str(&serialized).unwrap();
-
-//     let _prediction = model.predict(&x).unwrap();
-
-//     println!("{}",serialized);
-// }
-
+#[allow(dead_code)]
+mod arvore;
+#[allow(dead_code)]
 mod conexao;
-pub mod dado_papete;
+#[allow(dead_code)]
+mod csv_helper;
+#[allow(dead_code)]
+mod dado_papete;
+#[allow(dead_code)]
 mod movimento;
+#[allow(dead_code)]
 mod papete;
 
-use papete::Papete;
-use std::thread;
-use std::time::Duration;
-fn main() {
-    let mut papete = Papete::new();
-    loop {
-        let portas_disponiveis = papete.listar_conexoes_disponiveis();
-        if portas_disponiveis.len() > 0 {
-            if papete.conectar(portas_disponiveis[0].clone()) {
-                println!("Papete conectada em {:?}", portas_disponiveis[0]);
-                break;
+use std::{
+    io::{self, Write},
+    thread, time,
+};
+
+use crate::movimento::Movimento;
+
+fn coleta() {
+    let intervalo = time::Duration::from_millis(50);
+
+    let mut papete = papete::Papete::new();
+    papete.ativar_modo_conexao_imediata(2);
+    println!("Procurando papetes...");
+    while papete.obter_conexoes().len() < 2 {
+        thread::sleep(intervalo);
+    }
+    println!("Encontradas!");
+    papete.iniciar_sessao(500);
+
+    for rodada in 1..2 {
+        println!("{}/5", rodada);
+        for movimento in [
+            Movimento::Repouso,
+            Movimento::Dorsiflexao,
+            Movimento::Flexao,
+            Movimento::Eversao,
+            Movimento::Inversao,
+        ] {
+            println!("{:?}", papete.obter_conexoes());
+            println!("{}: {}", movimento.str_completa(), movimento.descricao());
+            //aguarda input qqr
+            io::stdin().read_line(&mut String::new()).unwrap();
+            for _ in 0..10 {
+                papete.registrar(movimento);
+                print!(".");
+                io::stdout().flush().unwrap();
+                thread::sleep(intervalo);
             }
+            println!("");
         }
     }
-    loop {
-        //só durante desenvolvimento, depois pode retirar
-        thread::sleep(Duration::from_millis(500));
+    papete.salvar("papete.csv").unwrap();
+}
 
-        println!("{:?}", papete.obter_dados());
-    }
+fn main() {
+    coleta();
+
+    // let intervalo = time::Duration::from_millis(50);
+    // let mut papete = papete::Papete::new();
+    // papete.ativar_modo_conexao_imediata(2);
+    // println!("Procurando papetes...");
+    // while papete.obter_conexoes().len() < 1 {
+    //     thread::sleep(intervalo);
+    // }
+    // println!("Encontradas!");
+    // loop {
+    //     let dados = papete.obter_dados();
+    //     if dados.0.is_some(){
+    //         print!("{}\t", dados.0.unwrap());
+    //     }
+    //     if dados.1.is_some(){
+    //         print!("{}", dados.1.unwrap());
+    //     }
+    //     println!("");
+    // }
 }

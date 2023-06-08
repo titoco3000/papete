@@ -7,9 +7,9 @@ COM4 é reconectada
 Precisa pedir de novo para conectar
 */
 
-use crate::conexao::Conexao;
-use crate::dado_papete::DadoPapete;
-use crate::movimento::Movimento;
+use crate::{
+    arvore::Arvore, conexao::Conexao, csv_helper, dado_papete::DadoPapete, movimento::Movimento,
+};
 
 use std::{
     borrow::Cow,
@@ -19,13 +19,17 @@ use std::{
         Arc, Mutex,
     },
     thread,
-    time::Duration,
+    time::{Duration, SystemTime, UNIX_EPOCH},
     todo,
 };
 
 pub struct Papete {
     dados: Arc<Mutex<(Option<DadoPapete>, Option<DadoPapete>)>>,
     transmissores_fim: Arc<Mutex<Vec<(Conexao, Option<Sender<()>>)>>>,
+    transmissor_buscador_portas: Option<Sender<()>>,
+    arvore: Arvore,
+    registrados: Vec<DadoPapete>,
+    sessao: Option<u32>,
 }
 
 impl Papete {
@@ -33,25 +37,46 @@ impl Papete {
         Papete {
             dados: Arc::new(Mutex::new((None, None))),
             transmissores_fim: Arc::new(Mutex::new(Vec::with_capacity(2))),
+            transmissor_buscador_portas: None,
+            arvore: Arvore::read_file("arvore.JSON").unwrap(),
+            registrados: Vec::new(),
+            sessao: None,
         }
     }
 
-    #[allow(dead_code)]
     pub fn obter_movimento(&self) -> Movimento {
-        todo!()
+        let dados = self.dados.lock().unwrap();
+        if let Some(esq) = dados.0 {
+            self.arvore.prever(esq.pitch, esq.roll, esq.lado_esq)
+        } else if let Some(dir) = dados.1 {
+            self.arvore.prever(dir.pitch, dir.roll, dir.lado_esq)
+        } else {
+            Movimento::Repouso
+        }
     }
 
-    #[allow(dead_code)]
     pub fn obter_conexoes(&self) -> Vec<Conexao> {
-        (*self.transmissores_fim.lock().unwrap()).iter().map(|x| x.0.clone()).collect()
+        (*self.transmissores_fim.lock().unwrap())
+            .iter()
+            .map(|x| x.0.clone())
+            .collect()
     }
 
-    #[allow(dead_code)]
     pub fn obter_dados(&self) -> (Option<DadoPapete>, Option<DadoPapete>) {
         self.dados.lock().unwrap().clone()
     }
 
-    pub fn listar_conexoes_disponiveis(&self) -> Vec<Conexao> {
+    pub fn obter_dados_qqr(&self) -> Option<DadoPapete> {
+        let dados = self.dados.lock().unwrap();
+        if let Some(d) = dados.0 {
+            return Some(d.clone());
+        } else if let Some(d) = dados.1 {
+            return Some(d.clone());
+        }
+        None
+    }
+
+    pub fn listar_conexoes_disponiveis() -> Vec<Conexao> {
         let portas_diponiveis: Vec<Conexao> = serialport::available_ports()
             .expect("erro ao ler portas")
             .iter()
@@ -60,18 +85,47 @@ impl Papete {
         return portas_diponiveis;
     }
 
+    pub fn iniciar_sessao(&mut self, qtd_esperada: usize) {
+        self.registrados = Vec::with_capacity(qtd_esperada);
+        self.sessao = Some(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u32,
+        );
+    }
+    pub fn registrar(&mut self, movimento: Movimento) -> bool {
+        let dados = self.obter_dados();
+        let mut res = false;
+        for lado in [dados.0, dados.1] {
+            if let Some(mut x) = lado {
+                x.movimento = Some(movimento);
+                x.sessao = Some(self.sessao.unwrap());
+                self.registrados.push(x);
+                res = true;
+            }
+        }
+        res
+    }
+    pub fn deregistrar(&mut self) {
+        self.registrados.pop();
+    }
+    pub fn salvar(&mut self, destino: &str) -> std::io::Result<()> {
+        csv_helper::salvar_dados(destino, &self.registrados)
+    }
+
     fn usb_listener(
         mut porta: Box<dyn serialport::SerialPort>,
         receptor_fim: Receiver<()>,
         dados: Arc<Mutex<(Option<DadoPapete>, Option<DadoPapete>)>>,
         transmissores_fim: Arc<Mutex<Vec<(Conexao, Option<Sender<()>>)>>>,
     ) {
-        let mut serial_buf: Vec<u8> = vec![0; 1000];
+        let mut serial_buf: Vec<u8> = vec![0; 10000];
         loop {
             match porta.read(serial_buf.as_mut_slice()) {
                 Ok(t) => {
                     if let Ok(s) = std::str::from_utf8(&serial_buf[..t]) {
-                        if let Ok(dado) = DadoPapete::try_from(s) {
+                        if let Ok(dado) = DadoPapete::try_from(s.trim()) {
                             if dado.lado_esq {
                                 dados.lock().unwrap().0 = Some(dado);
                             } else {
@@ -119,21 +173,31 @@ impl Papete {
     }
 
     pub fn conectar(&mut self, entrada: Conexao) -> bool {
+        let ref_a_lista = Arc::clone(&self.transmissores_fim);
+        let ref_a_dados = Arc::clone(&self.dados);
+        Papete::conectar_com_ref_parcial(ref_a_lista, ref_a_dados, entrada)
+    }
+
+    fn conectar_com_ref_parcial(
+        transmissores_fim: Arc<Mutex<Vec<(Conexao, Option<Sender<()>>)>>>,
+        dados: Arc<Mutex<(Option<DadoPapete>, Option<DadoPapete>)>>,
+        entrada: Conexao,
+    ) -> bool {
         match entrada {
             Conexao::USB(nome_porta) => {
                 match serialport::new(Cow::from(&nome_porta), 9600)
-                    .timeout(Duration::from_millis(10))
+                    .timeout(Duration::from_millis(60))
                     .open()
                 {
                     Ok(porta_conectada) => {
                         let (tx, rx) = mpsc::channel();
-                        self.transmissores_fim
+                        transmissores_fim
                             .lock()
                             .unwrap()
                             .push((Conexao::USB(nome_porta.clone()), Some(tx)));
 
-                        let ref_a_lista = Arc::clone(&self.transmissores_fim);
-                        let ref_a_dados = Arc::clone(&self.dados);
+                        let ref_a_lista = Arc::clone(&transmissores_fim);
+                        let ref_a_dados = Arc::clone(&dados);
 
                         thread::spawn(move || {
                             Papete::usb_listener(porta_conectada, rx, ref_a_dados, ref_a_lista)
@@ -146,16 +210,62 @@ impl Papete {
             _ => todo!(),
         }
     }
+
+    /*Enquanto não receber msg de fim:
+    verifica se esta conectado.
+    se não estiver, procura porta livre
+    */
+    fn buscador_portas(
+        receptor_fim: Receiver<()>,
+        dados: Arc<Mutex<(Option<DadoPapete>, Option<DadoPapete>)>>,
+        transmissores_fim: Arc<Mutex<Vec<(Conexao, Option<Sender<()>>)>>>,
+        max_conexoes: usize,
+    ) {
+        loop {
+            match receptor_fim.try_recv() {
+                Ok(_) | Err(TryRecvError::Disconnected) => {
+                    break;
+                }
+                Err(TryRecvError::Empty) => {}
+            }
+            if transmissores_fim.lock().unwrap().len() < 2 {
+                let disponiveis = Papete::listar_conexoes_disponiveis();
+                let qtd_conexoes_atuais = transmissores_fim.lock().unwrap().len();
+                if qtd_conexoes_atuais < max_conexoes && disponiveis.len() != qtd_conexoes_atuais {
+                    for porta in &disponiveis {
+                        let ref_a_lista = Arc::clone(&transmissores_fim);
+                        let ref_a_dados = Arc::clone(&dados);
+                        Papete::conectar_com_ref_parcial(ref_a_lista, ref_a_dados, porta.clone());
+                    }
+                }
+            }
+        }
+    }
+    pub fn ativar_modo_conexao_imediata(&mut self, max_conexoes: usize) {
+        let (tx, rx) = mpsc::channel();
+        self.transmissor_buscador_portas = Some(tx);
+        let ref_a_lista = Arc::clone(&self.transmissores_fim);
+        let ref_a_dados = Arc::clone(&self.dados);
+        thread::spawn(move || Papete::buscador_portas(rx, ref_a_dados, ref_a_lista, max_conexoes));
+    }
+    pub fn desativar_modo_conexao_imediata(&mut self) {
+        let retirado = std::mem::replace(&mut self.transmissor_buscador_portas, None);
+        if let Some(tx) = retirado {
+            tx.send(()).unwrap();
+        }
+    }
 }
 
 //parar threads que possam estar executando
 impl Drop for Papete {
     fn drop(&mut self) {
-        println!("Parando threads");
         for (_, t) in self.transmissores_fim.lock().unwrap().iter() {
             if let Some(tx) = t {
                 tx.send(()).unwrap();
             }
+        }
+        if let Some(tx) = &self.transmissor_buscador_portas {
+            tx.send(()).unwrap();
         }
     }
 }
