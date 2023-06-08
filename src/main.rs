@@ -22,9 +22,8 @@ fn main() {
 //para evitar warnings chatos
 #[allow(dead_code)]
 #[allow(unused_variables)]
-#[allow(unused_imports)]
 mod main_holder {
-    use crate::{arvore::Arvore, papete::Papete, csv_helper, previsor::Previsor, dado_papete::DadoPapete,movimento::Movimento,avaliacao};
+    use crate::{arvore::Arvore, papete::Papete, previsor::Previsor, movimento::Movimento,avaliacao};
     use std::{
         io::{self, Write},
         thread, time,
