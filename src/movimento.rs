@@ -1,4 +1,4 @@
-use std::{fmt, str::FromStr, clone};
+use std::{fmt, str::FromStr};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Movimento {
