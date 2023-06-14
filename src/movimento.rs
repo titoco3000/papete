@@ -1,5 +1,6 @@
 use std::{fmt, str::FromStr};
 
+#[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Movimento {
     Dorsiflexao,

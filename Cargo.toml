@@ -9,10 +9,19 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
+# tree
 rustlearn = "0.5"
-serde = "1.0"
+
+# salvar structs
+serde = "1.0" 
 serde_json = "1.0"
+
+# comunicação serial
 serialport = "4.2"
+
 linecount = "0.1"
-plotters = "0.3.0"
+
 rand = "0.8.5"
+
+# neural network
+tensorflow = { version = "0.20.0", features = ["tensorflow_gpu"] }

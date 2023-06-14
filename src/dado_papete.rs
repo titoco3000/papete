@@ -1,6 +1,7 @@
 use crate::movimento::Movimento;
 
 use std::fmt;
+use std::ops::SubAssign;
 
 #[derive(Clone, Copy, Debug)]
 pub struct DadoPapete {
@@ -130,5 +131,15 @@ impl TryFrom<&str> for DadoPapete {
 impl fmt::Display for DadoPapete {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "pitch: {:.6}\troll: {:.6}", self.pitch, self.roll)
+    }
+}
+
+impl SubAssign for DadoPapete {
+    fn sub_assign(&mut self, other: Self){
+        if self.lado_esq != other.lado_esq{
+            panic!("Tentando subtrair lados diferentes");
+        }
+        self.pitch-=other.pitch;
+        self.roll-=other.roll;
     }
 }
