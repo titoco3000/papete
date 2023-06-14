@@ -135,11 +135,11 @@ impl fmt::Display for DadoPapete {
 }
 
 impl SubAssign for DadoPapete {
-    fn sub_assign(&mut self, other: Self){
-        if self.lado_esq != other.lado_esq{
+    fn sub_assign(&mut self, other: Self) {
+        if self.lado_esq != other.lado_esq {
             panic!("Tentando subtrair lados diferentes");
         }
-        self.pitch-=other.pitch;
-        self.roll-=other.roll;
+        self.pitch -= other.pitch;
+        self.roll -= other.roll;
     }
 }

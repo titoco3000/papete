@@ -61,7 +61,7 @@ impl Movimento {
             Self::Inversao => 4.0,
         }
     }
-    pub fn as_usize(&self)->usize{
+    pub fn as_usize(&self) -> usize {
         match self {
             Self::Dorsiflexao => 0,
             Self::Flexao => 1,
@@ -71,8 +71,14 @@ impl Movimento {
         }
     }
 
-    pub fn todos()->[Movimento;5]{
-        [Self::Dorsiflexao,Self::Flexao,Self::Repouso,Self::Eversao,Self::Inversao]
+    pub fn todos() -> [Movimento; 5] {
+        [
+            Self::Dorsiflexao,
+            Self::Flexao,
+            Self::Repouso,
+            Self::Eversao,
+            Self::Inversao,
+        ]
     }
 }
 

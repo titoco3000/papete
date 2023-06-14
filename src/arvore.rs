@@ -54,18 +54,20 @@ impl Previsor for Arvore {
         model.fit(&entradas, &saidas).unwrap();
         Arvore(model)
     }
-    fn prever(&self, entrada: DadoPapete) -> Movimento {
+    fn prever(&mut self, entrada: DadoPapete) -> Movimento {
         let norm = Array::from(&vec![Vec::from(entrada.array_normalizado())]);
         Movimento::try_from(self.0.predict(&norm).unwrap().get(0, 0) as i32).unwrap()
     }
-    fn prever_batch(&self, entrada: &[DadoPapete]) -> Vec<Movimento> {
+    fn prever_batch(&mut self, entrada: &[DadoPapete]) -> Vec<Movimento> {
         let entrada: Vec<Vec<f32>> = entrada
             .iter()
             .map(|x| Vec::from(x.array_normalizado()))
             .collect();
         let norm = Array::from(&entrada);
         self.0
-            .predict(&norm).unwrap().data()
+            .predict(&norm)
+            .unwrap()
+            .data()
             .iter()
             .map(|x| Movimento::try_from(*x as i32).unwrap())
             .collect()

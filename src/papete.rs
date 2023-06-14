@@ -38,7 +38,7 @@ impl Papete {
     pub fn new() -> Papete {
         Papete {
             dados: Arc::new(Mutex::new((None, None))),
-            offsets: (None,None),
+            offsets: (None, None),
             transmissores_fim: Arc::new(Mutex::new(Vec::with_capacity(2))),
             transmissor_buscador_portas: None,
             arvore: Arvore::carregar("arvore.JSON").unwrap(),
@@ -49,27 +49,23 @@ impl Papete {
 
     pub fn obter_movimento(&mut self) -> Movimento {
         let dados = self.dados.lock().unwrap();
-        if let Some(mut dado) = dados.0{
+        if let Some(mut dado) = dados.0 {
             if let Some(offset) = self.offsets.0 {
-                dado-=offset;
-                return self.arvore
-                    .prever(dado)
-            }
-            else {
+                dado -= offset;
+                return self.arvore.prever(dado);
+            } else {
                 self.offsets.0 = Some(dado);
             }
         }
-        if let Some(mut dado) = dados.1{
+        if let Some(mut dado) = dados.1 {
             if let Some(offset) = self.offsets.1 {
-                dado-=offset;
-                return self.arvore
-                    .prever(dado)
-            }
-            else {
+                dado -= offset;
+                return self.arvore.prever(dado);
+            } else {
                 self.offsets.1 = Some(dado);
             }
         }
-        
+
         Movimento::Repouso
     }
 
@@ -117,12 +113,12 @@ impl Papete {
     pub fn registrar(&mut self, movimento: Movimento) -> bool {
         let dados = self.obter_dados();
         let mut res = false;
-        for lado in [(dados.0,self.offsets.0), (dados.1,self.offsets.1)] {
-            if let Some(mut x) = lado.0{
+        for lado in [(dados.0, self.offsets.0), (dados.1, self.offsets.1)] {
+            if let Some(mut x) = lado.0 {
                 if let Some(offset) = lado.1 {
                     x.movimento = Some(movimento);
                     x.sessao = Some(self.sessao.unwrap());
-                    x-=offset;
+                    x -= offset;
                     self.registrados.push(x);
                     res = true;
                 }
