@@ -167,7 +167,7 @@ impl Neural {
                 + prediction[i + 2]
                 + prediction[i + 3]
                 + prediction[i + 4];
-            println!("saida raw: {:?}",&prediction[i..i+5]);
+            println!("saida raw: {:?}", &prediction[i..i + 5]);
             saida.push([
                 prediction[i] / sum,
                 prediction[i + 1] / sum,
@@ -187,19 +187,7 @@ impl Previsor for Neural {
         n
     }
     fn prever(&mut self, entrada: DadoPapete) -> Movimento {
-        let tensor = Tensor::new(&[1, 3])
-            .with_values(&entrada.array_normalizado())
-            .unwrap();
-        let nn_out = self.obter_saida(tensor)[0];
-        let max_index = nn_out
-            .iter()
-            .enumerate()
-            .fold(
-                (0, 0.0),
-                |max, (ind, &val)| if val > max.1 { (ind, val) } else { max },
-            )
-            .0;
-        Movimento::try_from(max_index as i32).unwrap()
+        self.prever_batch(&[entrada])[0]
     }
     fn prever_batch(&mut self, entrada: &[DadoPapete]) -> Vec<Movimento> {
         let achatado: Vec<_> = entrada
@@ -207,7 +195,11 @@ impl Previsor for Neural {
             .map(|x| Vec::from(x.array_normalizado()))
             .flatten()
             .collect();
-        println!("\nVou criar um tensor a partir com entrada de len {} e {} dados total\n",entrada.len(),achatado.len());
+        println!(
+            "\nVou criar um tensor a partir com entrada de len {} e {} dados total\n",
+            entrada.len(),
+            achatado.len()
+        );
         let tensor = Tensor::new(&[entrada.len() as u64, 3])
             .with_values(&achatado)
             .unwrap();

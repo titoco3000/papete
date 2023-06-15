@@ -7,6 +7,7 @@ pub mod movimento;
 pub mod neural;
 pub mod papete;
 pub mod previsor;
+pub mod teste;
 
 extern crate tensorflow;
 

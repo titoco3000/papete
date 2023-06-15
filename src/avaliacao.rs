@@ -1,4 +1,9 @@
-use crate::{csv_helper::{self, carregar_dados}, dado_papete::DadoPapete, movimento::Movimento, previsor::Previsor};
+use crate::{
+    csv_helper::{self, carregar_dados},
+    dado_papete::DadoPapete,
+    movimento::Movimento,
+    previsor::Previsor,
+};
 use rand::prelude::SliceRandom;
 
 pub struct MatrizConfusao([[usize; 5]; 5]);
@@ -87,18 +92,31 @@ pub fn teste_10_pastas<T: Previsor>() {
     );
 }
 
-pub fn teste_simples<T:Previsor>(){
-    let dados = carregar_dados("papete.csv").expect("falha ao carregar dados");
+#[allow(dead_code)]
+pub fn teste_simples<T: Previsor>() {
+    let dados = carregar_dados("papete.csv")
+        .expect("falha ao carregar dados")
+        .into_iter()
+        .filter(|x| x.movimento.unwrap() == Movimento::Repouso)
+        .collect::<Vec<DadoPapete>>();
+    println!("{:#?}", dados);
     let mut engine = T::calcular_de_dataset(&dados);
     let mut acertos = 0;
-    for (obtido, esperado) in engine.prever_batch(&dados).iter().zip(dados.iter().map(|x|x.movimento)){
-        if obtido == &esperado.unwrap(){
-            println!("{} == {}",esperado.unwrap(),obtido);
-            acertos+=1;
-        }
-        else {
-            println!("{} != {}",esperado.unwrap(),obtido);
+    for (obtido, esperado) in engine
+        .prever_batch(&dados)
+        .iter()
+        .zip(dados.iter().map(|x| x.movimento))
+    {
+        if obtido == &esperado.unwrap() {
+            println!("{} == {}", esperado.unwrap(), obtido);
+            acertos += 1;
+        } else {
+            println!("{} != {}", esperado.unwrap(), obtido);
         }
     }
-    println!("acertos: {} / {}",acertos,dados.len());
+    println!(
+        "esperado | previsto\nacertos: {} / {}",
+        acertos,
+        dados.len()
+    );
 }

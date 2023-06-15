@@ -8,6 +8,7 @@ mod neural;
 #[allow(dead_code)]
 mod papete;
 mod previsor;
+mod teste;
 
 extern crate rand;
 extern crate tensorflow;
@@ -17,10 +18,11 @@ fn main() {
 }
 
 //para evitar warnings chatos
+#[allow(dead_code)]
 mod main_holder {
     use crate::{
-        arvore::Arvore, avaliacao, movimento::Movimento, neural::Neural, papete::Papete,
-        previsor::Previsor,
+        arvore::Arvore, avaliacao, csv_helper, dado_papete::DadoPapete, movimento::Movimento,
+        neural::Neural, papete::Papete, previsor::Previsor,
     };
     use std::{
         io::{self, Write},
@@ -253,40 +255,65 @@ mod main_holder {
     }
 
     fn aval_neural() {
-        avaliacao::teste_simples::<Neural>();
-    }
-    pub fn main() {
-        let args: Vec<String> = std::env::args().collect();
-        if args.len() == 1 {
-            teste_serial();
-        } else {
-            if args[1] == "coleta" {
-                let num = args.get(2).map(String::as_str).unwrap_or("1");
-                let num = if num == "1" { 1 } else { 2 };
-                coleta(num);
-            } else if args[1] == "teste" {
-                let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
-                if outro_arg == "arvore" {
-                    teste_arvore();
-                }
-                if outro_arg == "neural" {
-                    teste_neural();
-                } else {
-                    println!("argumento não reconhecido");
-                }
-            } else if args[1].starts_with("aval") {
-                let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
-                if outro_arg == "arvore" {
-                    aval_arvore();
-                }
-                if outro_arg == "neural" {
-                    aval_neural();
-                } else {
-                    println!("argumento não reconhecido");
-                }
+        let dados = csv_helper::carregar_dados("papete.csv")
+            .expect("falha ao carregar dados")
+            .into_iter()
+            .filter(|x| x.movimento.unwrap() == Movimento::Repouso)
+            .collect::<Vec<DadoPapete>>();
+        let mut engine = Neural::new();
+        engine.treinar_de_dataset(&dados);
+        let mut acertos = 0;
+        for (obtido, esperado) in engine
+            .prever_batch(&dados)
+            .iter()
+            .zip(dados.iter().map(|x| x.movimento))
+        {
+            if obtido == &esperado.unwrap() {
+                println!("{} == {}", esperado.unwrap(), obtido);
+                acertos += 1;
             } else {
-                println!("argumento não reconhecido");
+                println!("{} != {}", esperado.unwrap(), obtido);
             }
         }
+        println!(
+            "esperado | previsto\nacertos: {} / {}",
+            acertos,
+            dados.len()
+        );
+    }
+    pub fn main() {
+        crate::teste::teste();
+        // let args: Vec<String> = std::env::args().collect();
+        // if args.len() == 1 {
+        //     teste_serial();
+        // } else {
+        //     if args[1] == "coleta" {
+        //         let num = args.get(2).map(String::as_str).unwrap_or("1");
+        //         let num = if num == "1" { 1 } else { 2 };
+        //         coleta(num);
+        //     } else if args[1] == "teste" {
+        //         let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
+        //         if outro_arg == "arvore" {
+        //             teste_arvore();
+        //         }
+        //         if outro_arg == "neural" {
+        //             teste_neural();
+        //         } else {
+        //             println!("argumento não reconhecido");
+        //         }
+        //     } else if args[1].starts_with("aval") {
+        //         let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
+        //         if outro_arg == "arvore" {
+        //             aval_arvore();
+        //         }
+        //         if outro_arg == "neural" {
+        //             aval_neural();
+        //         } else {
+        //             println!("argumento não reconhecido");
+        //         }
+        //     } else {
+        //         println!("argumento não reconhecido");
+        //     }
+        // }
     }
 }
