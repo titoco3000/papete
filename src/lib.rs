@@ -7,9 +7,6 @@ pub mod movimento;
 pub mod neural;
 pub mod papete;
 pub mod previsor;
-pub mod teste;
-
-//extern crate tensorflow;
 
 use std::ffi::CStr;
 use std::os::raw::c_char;
@@ -17,10 +14,14 @@ use std::os::raw::c_char;
 use conexao::Conexao;
 use movimento::Movimento;
 use papete::Papete;
+use arvore::Arvore;
+use previsor::Previsor;
+
+extern crate simple_error;
 
 #[no_mangle]
 pub unsafe extern "C" fn alocar_papete() -> *mut Papete {
-    let s = Box::new(Papete::new());
+    let s = Box::new(Papete::new(Box::new(Arvore::carregar("papete.JSON").unwrap())));
     Box::into_raw(s)
 }
 

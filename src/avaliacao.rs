@@ -72,7 +72,7 @@ pub fn teste_10_pastas<T: Previsor>() {
             dados_treino.len(),
             dados_teste.len()
         );
-        let mut arv = T::calcular_de_dataset(&dados_treino);
+        let mut arv = T::calcular_de_dataset(&dados_treino).unwrap();
         for (i, resposta) in arv.prever_batch(dados_teste).iter().enumerate() {
             obtido.push((*resposta).clone());
             if &dados_teste[i].movimento.unwrap() == resposta {
@@ -99,7 +99,7 @@ pub fn teste_simples<T: Previsor>() {
         .into_iter()
         //.filter(|x| x.movimento.unwrap() == Movimento::Repouso)
         .collect::<Vec<DadoPapete>>();
-    let mut engine = T::calcular_de_dataset(&dados);
+    let mut engine = T::calcular_de_dataset(&dados).unwrap();
     let mut acertos = 0;
     for (obtido, esperado) in engine
         .prever_batch(&dados)

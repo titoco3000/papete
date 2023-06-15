@@ -72,8 +72,8 @@ impl Neural {
             output.double_value(&[3]) as f32,
             output.double_value(&[4]) as f32,
         ]
-        //[0.0,0.0,0.0,0.0,0.0]
     }
+
 }
 
 impl Module for Neural {
@@ -86,11 +86,21 @@ impl Module for Neural {
 }
 
 impl Previsor for Neural {
-    fn calcular_de_dataset(dataset: &[DadoPapete]) -> Self {
+    fn calcular_de_dataset(dataset: &[DadoPapete]) -> Result<Self, Box<dyn std::error::Error>> {
         let mut n = Neural::new();
         n.treinar_de_dataset(dataset);
-        n
+        Ok(n)
     }
+    fn carregar(endereco: &str) -> Result<Self,Box<dyn std::error::Error>> {
+        let mut n = Neural::new();
+        n.vs.load(endereco)?;
+        Ok(n)
+    }
+    fn salvar(&self, endereco: &str) -> Result<(), Box<dyn std::error::Error>>{
+        self.vs.save(endereco)?;
+        Ok(())
+    }
+
     fn prever(&mut self, entrada: DadoPapete) -> Movimento {
         let index_max = self
             .obter_saida(&entrada.array_normalizado())

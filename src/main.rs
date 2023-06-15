@@ -8,7 +8,6 @@ mod neural;
 #[allow(dead_code)]
 mod papete;
 mod previsor;
-mod teste;
 
 extern crate rand;
 //extern crate tensorflow;
@@ -32,7 +31,7 @@ mod main_holder {
 
     fn teste_serial() {
         let intervalo = time::Duration::from_millis(50);
-        let mut papete = Papete::new();
+        let mut papete = Papete::new(Box::new(Arvore::carregar("papete.JSON").unwrap()));
         papete.ativar_modo_conexao_imediata(2);
         println!("Procurando papetes...");
         while papete.obter_conexoes().len() < 1 {
@@ -54,7 +53,7 @@ mod main_holder {
     fn coleta(papetes: usize) {
         let intervalo = time::Duration::from_millis(80);
 
-        let mut papete = Papete::new();
+        let mut papete = Papete::new(Box::new(Arvore::carregar("papete.JSON").unwrap()));
         papete.ativar_modo_conexao_imediata(papetes);
         println!("Procurando papetes...");
         while papete.obter_conexoes().len() < papetes {
@@ -100,9 +99,10 @@ mod main_holder {
         let intervalo = time::Duration::from_millis(50);
 
         Arvore::calcular_de_dataset_addr("papete.csv")
+            .unwrap()
             .salvar("arvore.JSON")
             .expect("Erro ao salvar arvore");
-        let mut papete = Papete::new();
+        let mut papete = Papete::new(Box::new(Arvore::carregar("papete.JSON").unwrap()));
         papete.ativar_modo_conexao_imediata(1);
         print!("Procurando papetes...  ");
         while papete.obter_conexoes().len() < 1 {
@@ -123,7 +123,27 @@ mod main_holder {
     }
 
     fn teste_neural() {
-        todo!()
+        let n = Neural::calcular_de_dataset_addr("papete.csv").unwrap();
+        n.salvar("papete.pt").unwrap();
+
+        let n = Neural::carregar("papete.pt").unwrap();
+
+        let intervalo = time::Duration::from_millis(50);
+
+        let mut papete = Papete::new(Box::new(n));
+        papete.ativar_modo_conexao_imediata(1);
+        print!("Procurando papetes...  ");
+        while papete.obter_conexoes().len() < 1 {
+            thread::sleep(intervalo);
+        }
+        thread::sleep(time::Duration::from_secs(1));
+        println!("Encontradas!");
+        papete.iniciar_sessao(0);
+
+        loop {
+            println!("{}", papete.obter_movimento());
+            thread::sleep(intervalo);
+        }
     }
 
     fn aval_neural() {

@@ -8,7 +8,7 @@ Precisa pedir de novo para conectar
 */
 
 use crate::{
-    arvore::Arvore, conexao::Conexao, csv_helper, dado_papete::DadoPapete, movimento::Movimento,
+    conexao::Conexao, csv_helper, dado_papete::DadoPapete, movimento::Movimento,
     previsor::Previsor,
 };
 
@@ -29,19 +29,19 @@ pub struct Papete {
     offsets: (Option<DadoPapete>, Option<DadoPapete>),
     transmissores_fim: Arc<Mutex<Vec<(Conexao, Option<Sender<()>>)>>>,
     transmissor_buscador_portas: Option<Sender<()>>,
-    arvore: Arvore,
+    previsor: Box<dyn Previsor>,
     pub registrados: Vec<DadoPapete>,
     sessao: Option<u32>,
 }
 
 impl Papete {
-    pub fn new() -> Papete {
+    pub fn new(previsor: Box<dyn Previsor>) -> Papete {
         Papete {
             dados: Arc::new(Mutex::new((None, None))),
             offsets: (None, None),
             transmissores_fim: Arc::new(Mutex::new(Vec::with_capacity(2))),
             transmissor_buscador_portas: None,
-            arvore: Arvore::carregar("arvore.JSON").unwrap(),
+            previsor,
             registrados: Vec::new(),
             sessao: None,
         }
@@ -52,7 +52,7 @@ impl Papete {
         if let Some(mut dado) = dados.0 {
             if let Some(offset) = self.offsets.0 {
                 dado -= offset;
-                return self.arvore.prever(dado);
+                return self.previsor.prever(dado);
             } else {
                 self.offsets.0 = Some(dado);
             }
@@ -60,7 +60,7 @@ impl Papete {
         if let Some(mut dado) = dados.1 {
             if let Some(offset) = self.offsets.1 {
                 dado -= offset;
-                return self.arvore.prever(dado);
+                return self.previsor.prever(dado);
             } else {
                 self.offsets.1 = Some(dado);
             }
