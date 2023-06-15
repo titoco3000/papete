@@ -23,8 +23,5 @@ linecount = "0.1"
 
 rand = "0.8.5"
 
-# neural network, usar versão de gpu não funciona (https://github.com/tensorflow/rust/issues/400)
-#tensorflow = "0.20.0" 
-
-# segunda tentativa de neural network
+# neural network
 tch = "0.4.0"
