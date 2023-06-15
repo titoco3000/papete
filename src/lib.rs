@@ -9,7 +9,7 @@ pub mod papete;
 pub mod previsor;
 pub mod teste;
 
-extern crate tensorflow;
+//extern crate tensorflow;
 
 use std::ffi::CStr;
 use std::os::raw::c_char;

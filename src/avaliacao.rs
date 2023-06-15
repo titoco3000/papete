@@ -97,9 +97,8 @@ pub fn teste_simples<T: Previsor>() {
     let dados = carregar_dados("papete.csv")
         .expect("falha ao carregar dados")
         .into_iter()
-        .filter(|x| x.movimento.unwrap() == Movimento::Repouso)
+        //.filter(|x| x.movimento.unwrap() == Movimento::Repouso)
         .collect::<Vec<DadoPapete>>();
-    println!("{:#?}", dados);
     let mut engine = T::calcular_de_dataset(&dados);
     let mut acertos = 0;
     for (obtido, esperado) in engine

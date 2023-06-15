@@ -11,7 +11,7 @@ mod previsor;
 mod teste;
 
 extern crate rand;
-extern crate tensorflow;
+//extern crate tensorflow;
 
 fn main() {
     main_holder::main();
@@ -20,9 +20,10 @@ fn main() {
 //para evitar warnings chatos
 #[allow(dead_code)]
 mod main_holder {
+
     use crate::{
-        arvore::Arvore, avaliacao, csv_helper, dado_papete::DadoPapete, movimento::Movimento,
-        neural::Neural, papete::Papete, previsor::Previsor,
+        arvore::Arvore, avaliacao, movimento::Movimento, neural::Neural, papete::Papete,
+        previsor::Previsor,
     };
     use std::{
         io::{self, Write},
@@ -122,198 +123,43 @@ mod main_holder {
     }
 
     fn teste_neural() {
-        use tensorflow::{Graph, SavedModelBundle, SessionOptions, SessionRunArgs, Tensor};
-
-        //Sigmatures declared when we saved the model
-        let train_input_parameter_input_name = "training_input";
-        let train_input_parameter_target_name = "training_target";
-
-        //Names of output nodes of the graph, retrieved with the saved_model_cli command
-        let train_output_parameter_name = "output_0";
-
-        //Create some tensors to feed to the model for training, one as input and one as the target value
-        //Note: All tensors must be declared before args!
-        let input_tensor: Tensor<f32> = Tensor::new(&[2, 3])
-            .with_values(&[1.0, 1.0, 0.0, 0.0, 0.0, 0.0])
-            .unwrap();
-        let target_tensor: Tensor<f32> = Tensor::new(&[2, 5])
-            .with_values(&[0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
-            .unwrap();
-
-        //Path of the saved model
-        let save_dir = "custom_model";
-
-        //Create a graph
-        let mut graph = Graph::new();
-
-        //Load save model as graph
-        let bundle =
-            SavedModelBundle::load(&SessionOptions::new(), &["serve"], &mut graph, save_dir)
-                .expect("Can't load saved model");
-
-        //Initiate a session
-        let session = &bundle.session;
-
-        //Alternative to saved_model_cli. This will list all signatures in the console when run
-        // let sigs = bundle.meta_graph_def().signatures();
-        // println!("{:#?}", sigs);
-
-        //Retrieve the train functions signature
-        let signature_train = bundle.meta_graph_def().get_signature("train").unwrap();
-
-        //Input information
-        let input_info_train = signature_train
-            .get_input(train_input_parameter_input_name)
-            .unwrap();
-        let target_info_train = signature_train
-            .get_input(train_input_parameter_target_name)
-            .unwrap();
-
-        //Output information
-        let output_info_train = signature_train
-            .get_output(train_output_parameter_name)
-            .unwrap();
-
-        //Input operation
-        let input_op_train = graph
-            .operation_by_name_required(&input_info_train.name().name)
-            .unwrap();
-        let target_op_train = graph
-            .operation_by_name_required(&target_info_train.name().name)
-            .unwrap();
-
-        //Output operation
-        let output_op_train = graph
-            .operation_by_name_required(&output_info_train.name().name)
-            .unwrap();
-
-        //The values will be fed to and retrieved from the model with this
-        let mut args = SessionRunArgs::new();
-
-        //Feed the tensors into the graph
-        args.add_feed(&input_op_train, 0, &input_tensor);
-        args.add_feed(&target_op_train, 0, &target_tensor);
-
-        //Fetch result from graph
-        let out = args.request_fetch(&output_op_train, 0);
-
-        //Run the session
-        session
-            .run(&mut args)
-            .expect("Error occurred during calculations");
-
-        //Retrieve the result of the operation
-        let loss: f32 = args.fetch(out).unwrap()[0];
-
-        println!("Loss: {:?}", loss);
-
-        println!("Prevendo para input {:?}", input_tensor);
-
-        let pred_input_parameter_name = "inputs";
-        let pred_output_parameter_name = "output_0";
-
-        let session = &bundle.session;
-
-        //The values will be fed to and retrieved from the model with this
-        let mut args = SessionRunArgs::new();
-
-        //Retrieve the pred functions signature
-        let signature_train = bundle.meta_graph_def().get_signature("pred").unwrap();
-
-        //
-        let input_info_pred = signature_train
-            .get_input(pred_input_parameter_name)
-            .unwrap();
-
-        //
-        let output_info_pred = signature_train
-            .get_output(pred_output_parameter_name)
-            .unwrap();
-
-        //
-        let input_op_pred = graph
-            .operation_by_name_required(&input_info_pred.name().name)
-            .unwrap();
-
-        //
-        let output_op_pred = graph
-            .operation_by_name_required(&output_info_pred.name().name)
-            .unwrap();
-
-        args.add_feed(&input_op_pred, 0, &input_tensor);
-
-        let out = args.request_fetch(&output_op_pred, 0);
-
-        //Run the session
-        session
-            .run(&mut args)
-            .expect("Error occurred during calculations");
-
-        let prediction: &[f32] = &args.fetch(out).unwrap();
-
-        println!("Prediction: {:?}\n", prediction);
+        todo!()
     }
 
     fn aval_neural() {
-        let dados = csv_helper::carregar_dados("papete.csv")
-            .expect("falha ao carregar dados")
-            .into_iter()
-            .filter(|x| x.movimento.unwrap() == Movimento::Repouso)
-            .collect::<Vec<DadoPapete>>();
-        let mut engine = Neural::new();
-        engine.treinar_de_dataset(&dados);
-        let mut acertos = 0;
-        for (obtido, esperado) in engine
-            .prever_batch(&dados)
-            .iter()
-            .zip(dados.iter().map(|x| x.movimento))
-        {
-            if obtido == &esperado.unwrap() {
-                println!("{} == {}", esperado.unwrap(), obtido);
-                acertos += 1;
-            } else {
-                println!("{} != {}", esperado.unwrap(), obtido);
-            }
-        }
-        println!(
-            "esperado | previsto\nacertos: {} / {}",
-            acertos,
-            dados.len()
-        );
+        avaliacao::teste_10_pastas::<Neural>();
     }
     pub fn main() {
-        crate::teste::teste();
-        // let args: Vec<String> = std::env::args().collect();
-        // if args.len() == 1 {
-        //     teste_serial();
-        // } else {
-        //     if args[1] == "coleta" {
-        //         let num = args.get(2).map(String::as_str).unwrap_or("1");
-        //         let num = if num == "1" { 1 } else { 2 };
-        //         coleta(num);
-        //     } else if args[1] == "teste" {
-        //         let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
-        //         if outro_arg == "arvore" {
-        //             teste_arvore();
-        //         }
-        //         if outro_arg == "neural" {
-        //             teste_neural();
-        //         } else {
-        //             println!("argumento não reconhecido");
-        //         }
-        //     } else if args[1].starts_with("aval") {
-        //         let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
-        //         if outro_arg == "arvore" {
-        //             aval_arvore();
-        //         }
-        //         if outro_arg == "neural" {
-        //             aval_neural();
-        //         } else {
-        //             println!("argumento não reconhecido");
-        //         }
-        //     } else {
-        //         println!("argumento não reconhecido");
-        //     }
-        // }
+        let args: Vec<String> = std::env::args().collect();
+        if args.len() == 1 {
+            teste_serial();
+        } else {
+            if args[1] == "coleta" {
+                let num = args.get(2).map(String::as_str).unwrap_or("1");
+                let num = if num == "1" { 1 } else { 2 };
+                coleta(num);
+            } else if args[1] == "teste" {
+                let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
+                if outro_arg == "arvore" {
+                    teste_arvore();
+                }
+                if outro_arg == "neural" {
+                    teste_neural();
+                } else {
+                    println!("argumento não reconhecido");
+                }
+            } else if args[1].starts_with("aval") {
+                let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
+                if outro_arg == "arvore" {
+                    aval_arvore();
+                } else if outro_arg == "neural" {
+                    aval_neural();
+                } else {
+                    println!("argumento não reconhecido");
+                }
+            } else {
+                println!("argumento não reconhecido");
+            }
+        }
     }
 }
