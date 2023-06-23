@@ -8,20 +8,52 @@ pub mod neural;
 pub mod papete;
 pub mod previsor;
 
-use std::ffi::CStr;
+use std::ffi::{CStr,CString};
 use std::os::raw::c_char;
 
 use conexao::Conexao;
 use movimento::Movimento;
 use papete::Papete;
-use arvore::Arvore;
 use previsor::Previsor;
+use neural::Neural;
 
 extern crate simple_error;
 
 #[no_mangle]
 pub unsafe extern "C" fn alocar_papete() -> *mut Papete {
-    let s = Box::new(Papete::new(Box::new(Arvore::carregar("papete.JSON").unwrap())));
+    use std::fs;
+    use std::io::Write;
+    use std::path::Path;
+
+    let file_path = "papete.pt";
+    // Create the file if it doesn't exist
+    if !Path::new(&file_path).exists() {
+        fs::File::create(&file_path).unwrap_err_unchecked();
+    }
+    
+    let bytes = include_bytes!("..\\papete.pt");
+    
+    // Write bytes to the file
+    match fs::OpenOptions::new().write(true).open(&file_path) {
+        Ok(mut file) => {
+            if let Err(err) = file.write_all(bytes) {
+                eprintln!("Failed to write to file: {}", err);
+            }
+        }
+        Err(err) => {
+            eprintln!("Failed to open file: {}", err);
+        }
+    }
+
+    let n = Neural::carregar("papete.pt").unwrap();
+
+    // Delete the file
+    match fs::remove_file(&file_path) {
+        Ok(_) => println!("File deleted: {}", file_path),
+        Err(err) => eprintln!("Failed to delete file: {}", err),
+    }
+    
+    let s = Box::new(Papete::com_previsor(Box::new(n)));
     Box::into_raw(s)
 }
 
@@ -41,7 +73,8 @@ pub unsafe extern "C" fn listar_conexoes_disponiveis(array_ptr: *mut u8) -> i32 
     let mut contador = 0;
     for c in Papete::listar_conexoes_disponiveis() {
         if let Conexao::USB(str) = c {
-            for byte in str.as_bytes() {
+            let c_string = CString::new(str.as_str()).unwrap();
+            for byte in c_string.as_bytes() {
                 *(array_ptr.offset(preenchidos)) = *byte;
                 preenchidos += 1;
             }
@@ -61,7 +94,8 @@ pub unsafe extern "C" fn listar_conexoes_atuais(s: *mut Papete, array_ptr: *mut 
     let mut contador = 0;
     for c in (*s).obter_conexoes() {
         if let Conexao::USB(str) = c {
-            for byte in str.as_bytes() {
+            let c_string = CString::new(str.as_str()).unwrap();
+            for byte in c_string.as_bytes() {
                 *(array_ptr.offset(preenchidos)) = *byte;
                 preenchidos += 1;
             }

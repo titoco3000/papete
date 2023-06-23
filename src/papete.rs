@@ -29,19 +29,31 @@ pub struct Papete {
     offsets: (Option<DadoPapete>, Option<DadoPapete>),
     transmissores_fim: Arc<Mutex<Vec<(Conexao, Option<Sender<()>>)>>>,
     transmissor_buscador_portas: Option<Sender<()>>,
-    previsor: Box<dyn Previsor>,
+    previsor: Option<Box<dyn Previsor>>,
     pub registrados: Vec<DadoPapete>,
     sessao: Option<u32>,
 }
 
 impl Papete {
-    pub fn new(previsor: Box<dyn Previsor>) -> Papete {
+    pub fn new() -> Papete {
         Papete {
             dados: Arc::new(Mutex::new((None, None))),
             offsets: (None, None),
             transmissores_fim: Arc::new(Mutex::new(Vec::with_capacity(2))),
             transmissor_buscador_portas: None,
-            previsor,
+            previsor: None,
+            registrados: Vec::new(),
+            sessao: None,
+        }
+    }
+
+    pub fn com_previsor(previsor: Box<dyn Previsor>)->Papete{
+        Papete {
+            dados: Arc::new(Mutex::new((None, None))),
+            offsets: (None, None),
+            transmissores_fim: Arc::new(Mutex::new(Vec::with_capacity(2))),
+            transmissor_buscador_portas: None,
+            previsor: Some(previsor),
             registrados: Vec::new(),
             sessao: None,
         }
@@ -52,7 +64,7 @@ impl Papete {
         if let Some(mut dado) = dados.0 {
             if let Some(offset) = self.offsets.0 {
                 dado -= offset;
-                return self.previsor.prever(dado);
+                return self.previsor.as_mut().unwrap().prever(dado);
             } else {
                 self.offsets.0 = Some(dado);
             }
@@ -60,7 +72,7 @@ impl Papete {
         if let Some(mut dado) = dados.1 {
             if let Some(offset) = self.offsets.1 {
                 dado -= offset;
-                return self.previsor.prever(dado);
+                return self.previsor.as_mut().unwrap().prever(dado);
             } else {
                 self.offsets.1 = Some(dado);
             }

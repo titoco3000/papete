@@ -64,4 +64,7 @@ impl Previsor for Arvore {
         std::fs::write(endereco, serialized)?;
         Ok(())
     }
+    fn transferir(&mut self, _: &[DadoPapete]) {
+        panic!("Transferencia não existe para arvore");
+    }
 }

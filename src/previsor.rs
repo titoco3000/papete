@@ -18,5 +18,5 @@ pub trait Previsor {
     fn prever(&mut self, entrada: DadoPapete) -> Movimento;
     
     fn prever_batch(&mut self, entrada: &[DadoPapete]) -> Vec<Movimento>;
-
+    fn transferir(&mut self, entrada: &[DadoPapete]);
 }

@@ -117,4 +117,44 @@ impl Previsor for Neural {
     fn prever_batch(&mut self, entrada: &[DadoPapete]) -> Vec<Movimento> {
         entrada.iter().map(|e| self.prever(*e)).collect()
     }
+    fn transferir(&mut self, dataset: &[DadoPapete]) {
+        let entradas: Vec<_> = dataset
+            .iter()
+            .map(|x| Vec::from(x.array_normalizado()))
+            .flatten()
+            .collect();
+        let saidas_esperadas: Vec<f32> = dataset
+            .iter()
+            .map(|x| Vec::from(x.movimento.unwrap().como_entrada_nn()))
+            .flatten()
+            .collect();
+
+        let entradas = Tensor::of_slice(&entradas)
+            .reshape(&[dataset.len() as i64, 3])
+            .to_kind(tch::Kind::Float);
+        let saidas_esperadas =
+            Tensor::of_slice(&saidas_esperadas).reshape(&[dataset.len() as i64, 5]);
+
+        let mut opt = nn::Adam::default().build(&self.vs, 1e-3).unwrap();
+
+        let c0 = (self.layers[0].ws.copy(),self.layers[0].bs.copy());
+        let c1 = (self.layers[1].ws.copy(),self.layers[1].bs.copy());
+
+        println!("Transferindo...");
+        for _ in 0..5000 {
+            let loss = self
+                .forward(&entradas)
+                .mse_loss(&saidas_esperadas, tch::Reduction::Mean);
+
+            opt.backward_step(&loss);
+            
+            //volta ao q era antes
+            self.layers[0].ws = c0.0.copy();
+            self.layers[0].bs = c0.1.copy();
+            
+            self.layers[1].ws = c1.0.copy();
+            self.layers[1].bs = c1.1.copy();
+        }
+
+    }
 }

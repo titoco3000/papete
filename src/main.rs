@@ -13,6 +13,7 @@ extern crate rand;
 //extern crate tensorflow;
 
 fn main() {
+    println!("Executando main");
     main_holder::main();
 }
 
@@ -22,7 +23,7 @@ mod main_holder {
 
     use crate::{
         arvore::Arvore, avaliacao, movimento::Movimento, neural::Neural, papete::Papete,
-        previsor::Previsor,
+        previsor::Previsor, dado_papete::DadoPapete,
     };
     use std::{
         io::{self, Write},
@@ -31,7 +32,7 @@ mod main_holder {
 
     fn teste_serial() {
         let intervalo = time::Duration::from_millis(50);
-        let mut papete = Papete::new(Box::new(Arvore::carregar("papete.JSON").unwrap()));
+        let mut papete = Papete::new();
         papete.ativar_modo_conexao_imediata(2);
         println!("Procurando papetes...");
         while papete.obter_conexoes().len() < 1 {
@@ -50,10 +51,10 @@ mod main_holder {
         }
     }
 
-    fn coleta(papetes: usize) {
+    fn coleta(papetes: usize, rodadas:usize) -> Vec<DadoPapete>{
         let intervalo = time::Duration::from_millis(80);
 
-        let mut papete = Papete::new(Box::new(Arvore::carregar("papete.JSON").unwrap()));
+        let mut papete = Papete::new();
         papete.ativar_modo_conexao_imediata(papetes);
         println!("Procurando papetes...");
         while papete.obter_conexoes().len() < papetes {
@@ -63,8 +64,8 @@ mod main_holder {
         println!("Encontradas!");
         papete.iniciar_sessao(500);
 
-        for rodada in 1..6 {
-            println!("{}/5", rodada);
+        for rodada in 0..rodadas {
+            println!("{}/{}", rodada+1,rodadas);
             for movimento in [
                 Movimento::Repouso,
                 Movimento::Dorsiflexao,
@@ -92,7 +93,7 @@ mod main_holder {
                 //println!("{:?}",papete.registrados);
             }
         }
-        papete.salvar("papete.csv").unwrap();
+        std::mem::replace(&mut papete.registrados, Vec::new())
     }
 
     fn teste_arvore() {
@@ -102,7 +103,7 @@ mod main_holder {
             .unwrap()
             .salvar("arvore.JSON")
             .expect("Erro ao salvar arvore");
-        let mut papete = Papete::new(Box::new(Arvore::carregar("papete.JSON").unwrap()));
+        let mut papete = Papete::new();
         papete.ativar_modo_conexao_imediata(1);
         print!("Procurando papetes...  ");
         while papete.obter_conexoes().len() < 1 {
@@ -123,14 +124,14 @@ mod main_holder {
     }
 
     fn teste_neural() {
-        let n = Neural::calcular_de_dataset_addr("papete.csv").unwrap();
-        n.salvar("papete.pt").unwrap();
+        let mut n = Neural::carregar("papete.pt").unwrap();
 
-        let n = Neural::carregar("papete.pt").unwrap();
+        let dados = coleta(1, 2);
+        n.transferir(&dados);
 
         let intervalo = time::Duration::from_millis(50);
 
-        let mut papete = Papete::new(Box::new(n));
+        let mut papete = Papete::com_previsor(Box::new(n));
         papete.ativar_modo_conexao_imediata(1);
         print!("Procurando papetes...  ");
         while papete.obter_conexoes().len() < 1 {
@@ -150,36 +151,39 @@ mod main_holder {
         avaliacao::teste_10_pastas::<Neural>();
     }
     pub fn main() {
-        let args: Vec<String> = std::env::args().collect();
-        if args.len() == 1 {
-            teste_serial();
-        } else {
-            if args[1] == "coleta" {
-                let num = args.get(2).map(String::as_str).unwrap_or("1");
-                let num = if num == "1" { 1 } else { 2 };
-                coleta(num);
-            } else if args[1] == "teste" {
-                let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
-                if outro_arg == "arvore" {
-                    teste_arvore();
-                }
-                if outro_arg == "neural" {
-                    teste_neural();
-                } else {
-                    println!("argumento não reconhecido");
-                }
-            } else if args[1].starts_with("aval") {
-                let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
-                if outro_arg == "arvore" {
-                    aval_arvore();
-                } else if outro_arg == "neural" {
-                    aval_neural();
-                } else {
-                    println!("argumento não reconhecido");
-                }
-            } else {
-                println!("argumento não reconhecido");
-            }
-        }
+        teste_neural();
+        // let args: Vec<String> = std::env::args().collect();
+        // if args.len() == 1 {
+        //     teste_serial();
+        // } else {
+        //     if args[1] == "coleta" {
+        //         let num = args.get(2).map(String::as_str).unwrap_or("1");
+        //         let num = if num == "1" { 1 } else { 2 };
+        //         let dados = coleta(num,5);
+        //         csv_helper::salvar_dados("papete.csv", &dados).unwrap();
+                
+        //     } else if args[1] == "teste" {
+        //         let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
+        //         if outro_arg == "arvore" {
+        //             teste_arvore();
+        //         }
+        //         if outro_arg == "neural" {
+        //             teste_neural();
+        //         } else {
+        //             println!("argumento não reconhecido");
+        //         }
+        //     } else if args[1].starts_with("aval") {
+        //         let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
+        //         if outro_arg == "arvore" {
+        //             aval_arvore();
+        //         } else if outro_arg == "neural" {
+        //             aval_neural();
+        //         } else {
+        //             println!("argumento não reconhecido");
+        //         }
+        //     } else {
+        //         println!("argumento não reconhecido");
+        //     }
+        // }
     }
 }
