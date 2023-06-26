@@ -136,3 +136,52 @@ pub unsafe extern "C" fn ativar_modo_conexao_imediata(s: *mut Papete) {
 pub unsafe extern "C" fn desativar_modo_conexao_imediata(s: *mut Papete) {
     (*s).desativar_modo_conexao_imediata();
 }
+
+#[repr(C)]
+pub struct Vec2{
+    x:f32,
+    y:f32,
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn obter_rotacao(s: *mut Papete) -> Vec2{
+    match (*s).obter_dados_qqr() {
+        Some(dado) => Vec2 { x: dado.pitch, y: dado.roll },
+        None => Vec2 { x: 0.0, y: 0.0 }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn obter_lado(s: *mut Papete) -> bool{
+    match (*s).obter_dados_qqr() {
+        Some(dado) => dado.lado_esq,
+        None => false
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn registrar(s: *mut Papete, mov:Movimento)->i32{
+    (*s).registrar(mov);
+    (*s).registrados.len() as i32
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn deregistrar(s: *mut Papete)->i32{
+    (*s).deregistrar();
+    (*s).registrados.len() as i32
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn zerar(s: *mut Papete)->i32{
+    (*s).registrados.clear();
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn retreinar(s: *mut Papete)->bool{
+    if (*s).registrados.len() > 0{
+        (*s).transferir(&(*s).registrados);
+        return true;
+    }
+    false
+}

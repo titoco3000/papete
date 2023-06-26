@@ -3,9 +3,7 @@ use crate::movimento::Movimento;
 use crate::previsor::Previsor;
 
 use tch::{
-    nn,
-    nn::OptimizerConfig,
-    nn::{Module, VarStore},
+    nn::{self, OptimizerConfig, Module, VarStore},
     Tensor,
 };
 
@@ -74,6 +72,12 @@ impl Neural {
         ]
     }
 
+    fn custom_forward(&self, xs: &Tensor) -> Tensor {
+        let mut x = xs.apply(&self.layers[0]).sigmoid().set_requires_grad(false);
+        x = x.apply(&self.layers[1]).set_requires_grad(false).sigmoid();
+        x = x.apply(&self.layers[2]).sigmoid();
+        x.apply(&self.layers[3]).sigmoid()
+    }
 }
 
 impl Module for Neural {
@@ -137,23 +141,13 @@ impl Previsor for Neural {
 
         let mut opt = nn::Adam::default().build(&self.vs, 1e-3).unwrap();
 
-        let c0 = (self.layers[0].ws.copy(),self.layers[0].bs.copy());
-        let c1 = (self.layers[1].ws.copy(),self.layers[1].bs.copy());
-
-        println!("Transferindo...");
-        for _ in 0..5000 {
+        println!("\"Transferindo\"...");
+        for _ in 0..3000 {
             let loss = self
-                .forward(&entradas)
+                .custom_forward(&entradas)
                 .mse_loss(&saidas_esperadas, tch::Reduction::Mean);
 
             opt.backward_step(&loss);
-            
-            //volta ao q era antes
-            self.layers[0].ws = c0.0.copy();
-            self.layers[0].bs = c0.1.copy();
-            
-            self.layers[1].ws = c1.0.copy();
-            self.layers[1].bs = c1.1.copy();
         }
 
     }

@@ -9,7 +9,7 @@ Precisa pedir de novo para conectar
 
 use crate::{
     conexao::Conexao, csv_helper, dado_papete::DadoPapete, movimento::Movimento,
-    previsor::Previsor,
+    previsor::Previsor, neural::Neural,
 };
 
 use std::{
@@ -67,6 +67,7 @@ impl Papete {
                 return self.previsor.as_mut().unwrap().prever(dado);
             } else {
                 self.offsets.0 = Some(dado);
+                println!("Coloquei offset 0");
             }
         }
         if let Some(mut dado) = dados.1 {
@@ -75,9 +76,10 @@ impl Papete {
                 return self.previsor.as_mut().unwrap().prever(dado);
             } else {
                 self.offsets.1 = Some(dado);
+                println!("Coloquei offset 1");
             }
         }
-
+        println!("Não consegui papete");
         Movimento::Repouso
     }
 
@@ -125,14 +127,18 @@ impl Papete {
     pub fn registrar(&mut self, movimento: Movimento) -> bool {
         let dados = self.obter_dados();
         let mut res = false;
-        for lado in [(dados.0, self.offsets.0), (dados.1, self.offsets.1)] {
+        for lado in [(dados.0, &mut self.offsets.0), (dados.1, &mut self.offsets.1)] {
             if let Some(mut x) = lado.0 {
                 if let Some(offset) = lado.1 {
                     x.movimento = Some(movimento);
-                    x.sessao = Some(self.sessao.unwrap());
-                    x -= offset;
+                    x.sessao = Some( if let Some(sessao) = self.sessao {
+                        sessao
+                    } else{0});
+                    x -= *offset;
                     self.registrados.push(x);
                     res = true;
+                }else if movimento == Movimento::Repouso {
+                        *lado.1 = lado.0.clone();                    
                 }
             }
         }
@@ -298,5 +304,33 @@ impl Drop for Papete {
         if let Some(tx) = &self.transmissor_buscador_portas {
             tx.send(()).unwrap();
         }
+    }
+}
+
+impl Previsor for Papete {
+    fn calcular_de_dataset(dataset: &[DadoPapete]) -> Result<Self, Box<dyn std::error::Error>> {
+        match Neural::calcular_de_dataset(dataset) {
+            Ok(n) => Ok(Papete::com_previsor(Box::new(n))),
+            Err(e) => Err(e)
+        }
+    }
+    fn carregar(endereco: &str) -> Result<Self,Box<dyn std::error::Error>> {
+        match Neural::carregar(endereco) {
+            Ok(n) => Ok(Papete::com_previsor(Box::new(n))),
+            Err(e) => Err(e)
+        }
+    }
+    fn salvar(&self, endereco: &str) -> Result<(), Box<dyn std::error::Error>>{
+        self.previsor.as_ref().unwrap().salvar(endereco)
+    }
+
+    fn prever(&mut self, entrada: DadoPapete) -> Movimento {
+        self.previsor.as_mut().unwrap().prever(entrada)
+    }
+    fn prever_batch(&mut self, entrada: &[DadoPapete]) -> Vec<Movimento> {
+        self.previsor.as_mut().unwrap().prever_batch(entrada)
+    }
+    fn transferir(&mut self, dataset: &[DadoPapete]) {
+        self.previsor.as_mut().unwrap().transferir(dataset)
     }
 }

@@ -23,7 +23,7 @@ mod main_holder {
 
     use crate::{
         arvore::Arvore, avaliacao, movimento::Movimento, neural::Neural, papete::Papete,
-        previsor::Previsor, dado_papete::DadoPapete,
+        previsor::Previsor, dado_papete::DadoPapete, csv_helper,
     };
     use std::{
         io::{self, Write},
@@ -150,40 +150,55 @@ mod main_holder {
     fn aval_neural() {
         avaliacao::teste_10_pastas::<Neural>();
     }
+    fn teste_transf(){
+        println!("Primeiro precisamos de uma coleta");
+        let dados = coleta(1, 1);
+        let mut papete = Papete::com_previsor(Box::new(Neural::carregar("papete.pt").unwrap()));
+        papete.ativar_modo_conexao_imediata(1);
+        papete.transferir(&dados);
+        loop {
+            println!("{}",papete.obter_movimento());
+        }
+
+    }
+
     pub fn main() {
-        teste_neural();
-        // let args: Vec<String> = std::env::args().collect();
-        // if args.len() == 1 {
-        //     teste_serial();
-        // } else {
-        //     if args[1] == "coleta" {
-        //         let num = args.get(2).map(String::as_str).unwrap_or("1");
-        //         let num = if num == "1" { 1 } else { 2 };
-        //         let dados = coleta(num,5);
-        //         csv_helper::salvar_dados("papete.csv", &dados).unwrap();
+        let args: Vec<String> = std::env::args().collect();
+        if args.len() == 1 {
+            teste_serial();
+        } else {
+            if args[1] == "coleta" {
+                let num = args.get(2).map(String::as_str).unwrap_or("1");
+                let num = if num == "1" { 1 } else { 2 };
+                let dados = coleta(num,5);
+                csv_helper::salvar_dados("papete.csv", &dados).unwrap();
                 
-        //     } else if args[1] == "teste" {
-        //         let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
-        //         if outro_arg == "arvore" {
-        //             teste_arvore();
-        //         }
-        //         if outro_arg == "neural" {
-        //             teste_neural();
-        //         } else {
-        //             println!("argumento não reconhecido");
-        //         }
-        //     } else if args[1].starts_with("aval") {
-        //         let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
-        //         if outro_arg == "arvore" {
-        //             aval_arvore();
-        //         } else if outro_arg == "neural" {
-        //             aval_neural();
-        //         } else {
-        //             println!("argumento não reconhecido");
-        //         }
-        //     } else {
-        //         println!("argumento não reconhecido");
-        //     }
-        // }
+            } else if args[1] == "teste" {
+                let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
+                if outro_arg == "arvore" {
+                    teste_arvore();
+                }
+                else if outro_arg == "neural" {
+                    teste_neural();
+                }
+                else if outro_arg.starts_with("trans") {
+                    teste_transf();
+                }
+                 else {
+                    println!("argumento não reconhecido");
+                }
+            } else if args[1].starts_with("aval") {
+                let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
+                if outro_arg == "arvore" {
+                    aval_arvore();
+                } else if outro_arg == "neural" {
+                    aval_neural();
+                } else {
+                    println!("argumento não reconhecido");
+                }
+            } else {
+                println!("argumento não reconhecido");
+            }
+        }
     }
 }
