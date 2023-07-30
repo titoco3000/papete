@@ -23,10 +23,6 @@ linecount = "0.1"
 
 rand = "0.8.5"
 
-simple-error = "0.3.0"
-
-statistical = "1.0.0"
-
 # neural network
 tch = "0.4.0"
 

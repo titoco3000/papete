@@ -452,6 +452,7 @@ dependencies = [
  "serde_json",
  "serialport",
  "simple-error",
+ "simple-error",
  "statistical",
  "tch",
 ]
