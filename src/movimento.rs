@@ -52,6 +52,7 @@ impl Movimento {
         }
     }
 
+    #[allow(dead_code)]
     pub fn as_f32(&self) -> f32 {
         match self {
             Self::Dorsiflexao => 0.0,

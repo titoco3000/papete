@@ -3,9 +3,7 @@ use crate::movimento::Movimento;
 use crate::previsor::Previsor;
 
 use tch::{
-    nn,
-    nn::OptimizerConfig,
-    nn::{Module, VarStore},
+    nn::{self, OptimizerConfig, Module, VarStore},
     Tensor,
 };
 
@@ -50,7 +48,7 @@ impl Neural {
         let mut opt = nn::Adam::default().build(&self.vs, 1e-3).unwrap();
 
         println!("Treinando...");
-        for _ in 0..8000 {
+        for _ in 0..500 {
             let loss = self
                 .forward(&entradas)
                 .mse_loss(&saidas_esperadas, tch::Reduction::Mean);
@@ -72,7 +70,13 @@ impl Neural {
             output.double_value(&[3]) as f32,
             output.double_value(&[4]) as f32,
         ]
-        //[0.0,0.0,0.0,0.0,0.0]
+    }
+
+    fn custom_forward(&self, xs: &Tensor) -> Tensor {
+        let mut x = xs.apply(&self.layers[0]).sigmoid().set_requires_grad(false);
+        x = x.apply(&self.layers[1]).set_requires_grad(false).sigmoid();
+        x = x.apply(&self.layers[2]).sigmoid();
+        x.apply(&self.layers[3]).sigmoid()
     }
 }
 
@@ -86,11 +90,21 @@ impl Module for Neural {
 }
 
 impl Previsor for Neural {
-    fn calcular_de_dataset(dataset: &[DadoPapete]) -> Self {
+    fn calcular_de_dataset(dataset: &[DadoPapete]) -> Result<Self, Box<dyn std::error::Error>> {
         let mut n = Neural::new();
         n.treinar_de_dataset(dataset);
-        n
+        Ok(n)
     }
+    fn carregar(endereco: &str) -> Result<Self,Box<dyn std::error::Error>> {
+        let mut n = Neural::new();
+        n.vs.load(endereco)?;
+        Ok(n)
+    }
+    fn salvar(&self, endereco: &str) -> Result<(), Box<dyn std::error::Error>>{
+        self.vs.save(endereco)?;
+        Ok(())
+    }
+
     fn prever(&mut self, entrada: DadoPapete) -> Movimento {
         let index_max = self
             .obter_saida(&entrada.array_normalizado())
@@ -106,5 +120,35 @@ impl Previsor for Neural {
     }
     fn prever_batch(&mut self, entrada: &[DadoPapete]) -> Vec<Movimento> {
         entrada.iter().map(|e| self.prever(*e)).collect()
+    }
+    fn transferir(&mut self, dataset: &[DadoPapete]) {
+        let entradas: Vec<_> = dataset
+            .iter()
+            .map(|x| Vec::from(x.array_normalizado()))
+            .flatten()
+            .collect();
+        let saidas_esperadas: Vec<f32> = dataset
+            .iter()
+            .map(|x| Vec::from(x.movimento.unwrap().como_entrada_nn()))
+            .flatten()
+            .collect();
+
+        let entradas = Tensor::of_slice(&entradas)
+            .reshape(&[dataset.len() as i64, 3])
+            .to_kind(tch::Kind::Float);
+        let saidas_esperadas =
+            Tensor::of_slice(&saidas_esperadas).reshape(&[dataset.len() as i64, 5]);
+
+        let mut opt = nn::Adam::default().build(&self.vs, 1e-3).unwrap();
+
+        println!("\"Transferindo\"...");
+        for _ in 0..3000 {
+            let loss = self
+                .custom_forward(&entradas)
+                .mse_loss(&saidas_esperadas, tch::Reduction::Mean);
+
+            opt.backward_step(&loss);
+        }
+
     }
 }

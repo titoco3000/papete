@@ -8,32 +8,8 @@ use rustlearn::trees::decision_tree::{DecisionTree, Hyperparameters};
 
 pub struct Arvore(OneVsRestWrapper<DecisionTree>);
 
-impl Arvore {
-    pub fn carregar(endereco: &str) -> Result<Arvore, &str> {
-        if let Ok(contents) = std::fs::read_to_string(endereco) {
-            match serde_json::from_str(&contents) {
-                Ok(r) => return Ok(Arvore(r)),
-                Err(_) => return Err("Falha ao interpretar JSON"),
-            }
-        }
-        Err("Falha ao abrir o arquivo")
-    }
-
-    pub fn salvar(&self, endereco: &str) -> std::io::Result<()> {
-        let serialized = serde_json::to_string(&self.0).unwrap();
-
-        std::fs::write(endereco, serialized)
-    }
-
-    // pub fn prever(&self, pitch: f32, roll: f32, pe_esq: bool) -> Movimento {
-    //     let norm = Array::from(&vec![Vec::from(DadoPapete::basico(
-    //         pitch, roll, pe_esq
-    //     ).array_normalizado())]);
-    //     Movimento::try_from(self.0.predict(&norm).unwrap().get(0, 0) as i32).unwrap()
-    // }
-}
 impl Previsor for Arvore {
-    fn calcular_de_dataset(dataset: &[DadoPapete]) -> Arvore {
+    fn calcular_de_dataset(dataset: &[DadoPapete]) -> Result<Self, Box<dyn std::error::Error>> {
         let mut model = Hyperparameters::new(3)
             .min_samples_split(5)
             .max_depth(40)
@@ -52,7 +28,18 @@ impl Previsor for Arvore {
         let saidas = Array::from(saidas);
 
         model.fit(&entradas, &saidas).unwrap();
-        Arvore(model)
+        Ok(Arvore(model))
+    }
+    fn carregar(endereco: &str) -> Result<Self, Box<dyn std::error::Error>>
+        where
+            Self: Sized {
+                if let Ok(contents) = std::fs::read_to_string(endereco) {
+                    match serde_json::from_str(&contents) {
+                        Ok(r) => return Ok(Arvore(r)),
+                        Err(_) => simple_error::bail!("Falha ao interpretar JSON"),
+                    }
+                }
+                simple_error::bail!("Falha ao abrir o arquivo")
     }
     fn prever(&mut self, entrada: DadoPapete) -> Movimento {
         let norm = Array::from(&vec![Vec::from(entrada.array_normalizado())]);
@@ -71,5 +58,13 @@ impl Previsor for Arvore {
             .iter()
             .map(|x| Movimento::try_from(*x as i32).unwrap())
             .collect()
+    }
+    fn salvar(&self, endereco: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let serialized = serde_json::to_string(&self.0).unwrap();
+        std::fs::write(endereco, serialized)?;
+        Ok(())
+    }
+    fn transferir(&mut self, _: &[DadoPapete]) {
+        panic!("Transferencia não existe para arvore");
     }
 }

@@ -8,12 +8,12 @@ mod neural;
 #[allow(dead_code)]
 mod papete;
 mod previsor;
-mod teste;
 
 extern crate rand;
-//extern crate tensorflow;
+extern crate statistical;
 
 fn main() {
+    println!("Executando main");
     main_holder::main();
 }
 
@@ -23,7 +23,7 @@ mod main_holder {
 
     use crate::{
         arvore::Arvore, avaliacao, movimento::Movimento, neural::Neural, papete::Papete,
-        previsor::Previsor,
+        previsor::Previsor, dado_papete::DadoPapete, csv_helper,
     };
     use std::{
         io::{self, Write},
@@ -51,7 +51,7 @@ mod main_holder {
         }
     }
 
-    fn coleta(papetes: usize) {
+    fn coleta(papetes: usize, rodadas:usize) -> Vec<DadoPapete>{
         let intervalo = time::Duration::from_millis(80);
 
         let mut papete = Papete::new();
@@ -64,8 +64,8 @@ mod main_holder {
         println!("Encontradas!");
         papete.iniciar_sessao(500);
 
-        for rodada in 1..6 {
-            println!("{}/5", rodada);
+        for rodada in 0..rodadas {
+            println!("{}/{}", rodada+1,rodadas);
             for movimento in [
                 Movimento::Repouso,
                 Movimento::Dorsiflexao,
@@ -93,13 +93,14 @@ mod main_holder {
                 //println!("{:?}",papete.registrados);
             }
         }
-        papete.salvar("papete.csv").unwrap();
+        std::mem::replace(&mut papete.registrados, Vec::new())
     }
 
     fn teste_arvore() {
         let intervalo = time::Duration::from_millis(50);
 
         Arvore::calcular_de_dataset_addr("papete.csv")
+            .unwrap()
             .salvar("arvore.JSON")
             .expect("Erro ao salvar arvore");
         let mut papete = Papete::new();
@@ -123,12 +124,44 @@ mod main_holder {
     }
 
     fn teste_neural() {
-        todo!()
+        let mut n = Neural::carregar("papete.pt").unwrap();
+
+        let dados = coleta(1, 2);
+        n.transferir(&dados);
+
+        let intervalo = time::Duration::from_millis(50);
+
+        let mut papete = Papete::com_previsor(Box::new(n));
+        papete.ativar_modo_conexao_imediata(1);
+        print!("Procurando papetes...  ");
+        while papete.obter_conexoes().len() < 1 {
+            thread::sleep(intervalo);
+        }
+        thread::sleep(time::Duration::from_secs(1));
+        println!("Encontradas!");
+        papete.iniciar_sessao(0);
+
+        loop {
+            println!("{}", papete.obter_movimento());
+            thread::sleep(intervalo);
+        }
     }
 
     fn aval_neural() {
         avaliacao::teste_10_pastas::<Neural>();
     }
+    fn teste_transf(){
+        println!("Primeiro precisamos de uma coleta");
+        let dados = coleta(1, 1);
+        let mut papete = Papete::com_previsor(Box::new(Neural::carregar("papete.pt").unwrap()));
+        papete.ativar_modo_conexao_imediata(1);
+        papete.transferir(&dados);
+        loop {
+            println!("{}",papete.obter_movimento());
+        }
+
+    }
+
     pub fn main() {
         let args: Vec<String> = std::env::args().collect();
         if args.len() == 1 {
@@ -137,15 +170,21 @@ mod main_holder {
             if args[1] == "coleta" {
                 let num = args.get(2).map(String::as_str).unwrap_or("1");
                 let num = if num == "1" { 1 } else { 2 };
-                coleta(num);
+                let dados = coleta(num,5);
+                csv_helper::salvar_dados("papete.csv", &dados).unwrap();
+                
             } else if args[1] == "teste" {
                 let outro_arg = args.get(2).map(String::as_str).unwrap_or("arvore");
                 if outro_arg == "arvore" {
                     teste_arvore();
                 }
-                if outro_arg == "neural" {
+                else if outro_arg == "neural" {
                     teste_neural();
-                } else {
+                }
+                else if outro_arg.starts_with("trans") {
+                    teste_transf();
+                }
+                 else {
                     println!("argumento não reconhecido");
                 }
             } else if args[1].starts_with("aval") {
