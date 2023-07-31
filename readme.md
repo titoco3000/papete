@@ -1,7 +1,9 @@
 Esse projeto busca facilitar a implantação de jogos usando a papete inteligente. 
 
 # script papete
-na pasta arduino, é o que deve ser enviado para o arduino preso no pé.
+Na pasta arduino, é o que deve ser enviado para o arduino preso no pé.
+
+Para instalar bibliotecas necessarias:: na IDE, Ferramentas > Gerenciar Bibliotecas > instale "Adafruit MPU6050" e "Adafruit Unified Sensor".
 
 # interface para jogos
 o DLL "papete.dll" inclui funcoes para se conectar com a papete, ler o seu sensor e ler a posição atual (Dorsiflexão, Flexão plantar, Repouso, Eversão ou Inversão).
