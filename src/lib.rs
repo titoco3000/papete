@@ -8,14 +8,14 @@ pub mod neural;
 pub mod papete;
 pub mod previsor;
 
-use std::ffi::{CStr,CString};
+use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
 use conexao::Conexao;
 use movimento::Movimento;
+use neural::Neural;
 use papete::Papete;
 use previsor::Previsor;
-use neural::Neural;
 
 extern crate simple_error;
 
@@ -30,9 +30,9 @@ pub unsafe extern "C" fn alocar_papete() -> *mut Papete {
     if !Path::new(&file_path).exists() {
         fs::File::create(&file_path).unwrap_err_unchecked();
     }
-    
+
     let bytes = include_bytes!("..\\papete.pt");
-    
+
     // Write bytes to the file
     match fs::OpenOptions::new().write(true).open(&file_path) {
         Ok(mut file) => {
@@ -52,7 +52,7 @@ pub unsafe extern "C" fn alocar_papete() -> *mut Papete {
         Ok(_) => println!("File deleted: {}", file_path),
         Err(err) => eprintln!("Failed to delete file: {}", err),
     }
-    
+
     let s = Box::new(Papete::com_previsor(Box::new(n)));
     Box::into_raw(s)
 }
@@ -138,48 +138,51 @@ pub unsafe extern "C" fn desativar_modo_conexao_imediata(s: *mut Papete) {
 }
 
 #[repr(C)]
-pub struct Vec2{
-    x:f32,
-    y:f32,
+pub struct Vec2 {
+    x: f32,
+    y: f32,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn obter_rotacao(s: *mut Papete) -> Vec2{
+pub unsafe extern "C" fn obter_rotacao(s: *mut Papete) -> Vec2 {
     match (*s).obter_dados_qqr() {
-        Some(dado) => Vec2 { x: dado.pitch, y: dado.roll },
-        None => Vec2 { x: 0.0, y: 0.0 }
+        Some(dado) => Vec2 {
+            x: dado.pitch,
+            y: dado.roll,
+        },
+        None => Vec2 { x: 0.0, y: 0.0 },
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn obter_lado(s: *mut Papete) -> bool{
+pub unsafe extern "C" fn obter_lado(s: *mut Papete) -> bool {
     match (*s).obter_dados_qqr() {
         Some(dado) => dado.lado_esq,
-        None => false
+        None => false,
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn registrar(s: *mut Papete, mov:Movimento)->i32{
+pub unsafe extern "C" fn registrar(s: *mut Papete, mov: Movimento) -> i32 {
     (*s).registrar(mov);
     (*s).registrados.len() as i32
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn deregistrar(s: *mut Papete)->i32{
+pub unsafe extern "C" fn deregistrar(s: *mut Papete) -> i32 {
     (*s).deregistrar();
     (*s).registrados.len() as i32
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn zerar(s: *mut Papete)->i32{
+pub unsafe extern "C" fn zerar(s: *mut Papete) -> i32 {
     (*s).registrados.clear();
     0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn retreinar(s: *mut Papete)->bool{
-    if (*s).registrados.len() > 0{
+pub unsafe extern "C" fn retreinar(s: *mut Papete) -> bool {
+    if (*s).registrados.len() > 0 {
         (*s).transferir(&(*s).registrados);
         return true;
     }

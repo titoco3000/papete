@@ -8,8 +8,8 @@ Precisa pedir de novo para conectar
 */
 
 use crate::{
-    conexao::Conexao, csv_helper, dado_papete::DadoPapete, movimento::Movimento,
-    previsor::Previsor, neural::Neural,
+    conexao::Conexao, csv_helper, dado_papete::DadoPapete, movimento::Movimento, neural::Neural,
+    previsor::Previsor,
 };
 
 use std::{
@@ -47,7 +47,7 @@ impl Papete {
         }
     }
 
-    pub fn com_previsor(previsor: Box<dyn Previsor>)->Papete{
+    pub fn com_previsor(previsor: Box<dyn Previsor>) -> Papete {
         Papete {
             dados: Arc::new(Mutex::new((None, None))),
             offsets: (None, None),
@@ -94,6 +94,7 @@ impl Papete {
         self.dados.lock().unwrap().clone()
     }
 
+    #[allow(dead_code)]
     pub fn obter_dados_qqr(&self) -> Option<DadoPapete> {
         let dados = self.dados.lock().unwrap();
         if let Some(d) = dados.0 {
@@ -127,26 +128,33 @@ impl Papete {
     pub fn registrar(&mut self, movimento: Movimento) -> bool {
         let dados = self.obter_dados();
         let mut res = false;
-        for lado in [(dados.0, &mut self.offsets.0), (dados.1, &mut self.offsets.1)] {
+        for lado in [
+            (dados.0, &mut self.offsets.0),
+            (dados.1, &mut self.offsets.1),
+        ] {
             if let Some(mut x) = lado.0 {
                 if let Some(offset) = lado.1 {
                     x.movimento = Some(movimento);
-                    x.sessao = Some( if let Some(sessao) = self.sessao {
+                    x.sessao = Some(if let Some(sessao) = self.sessao {
                         sessao
-                    } else{0});
+                    } else {
+                        0
+                    });
                     x -= *offset;
                     self.registrados.push(x);
                     res = true;
-                }else if movimento == Movimento::Repouso {
-                        *lado.1 = lado.0.clone();                    
+                } else if movimento == Movimento::Repouso {
+                    *lado.1 = lado.0.clone();
                 }
             }
         }
         res
     }
+    #[allow(dead_code)]
     pub fn deregistrar(&mut self) {
         self.registrados.pop();
     }
+    #[allow(dead_code)]
     pub fn salvar(&mut self, destino: &str) -> std::io::Result<()> {
         csv_helper::salvar_dados(destino, &self.registrados)
     }
@@ -209,6 +217,7 @@ impl Papete {
         }
     }
 
+    #[allow(dead_code)]
     pub fn conectar(&mut self, entrada: Conexao) -> bool {
         let ref_a_lista = Arc::clone(&self.transmissores_fim);
         let ref_a_dados = Arc::clone(&self.dados);
@@ -285,6 +294,7 @@ impl Papete {
         let ref_a_dados = Arc::clone(&self.dados);
         thread::spawn(move || Papete::buscador_portas(rx, ref_a_dados, ref_a_lista, max_conexoes));
     }
+    #[allow(dead_code)]
     pub fn desativar_modo_conexao_imediata(&mut self) {
         let retirado = std::mem::replace(&mut self.transmissor_buscador_portas, None);
         if let Some(tx) = retirado {
@@ -311,16 +321,16 @@ impl Previsor for Papete {
     fn calcular_de_dataset(dataset: &[DadoPapete]) -> Result<Self, Box<dyn std::error::Error>> {
         match Neural::calcular_de_dataset(dataset) {
             Ok(n) => Ok(Papete::com_previsor(Box::new(n))),
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
-    fn carregar(endereco: &str) -> Result<Self,Box<dyn std::error::Error>> {
+    fn carregar(endereco: &str) -> Result<Self, Box<dyn std::error::Error>> {
         match Neural::carregar(endereco) {
             Ok(n) => Ok(Papete::com_previsor(Box::new(n))),
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
-    fn salvar(&self, endereco: &str) -> Result<(), Box<dyn std::error::Error>>{
+    fn salvar(&self, endereco: &str) -> Result<(), Box<dyn std::error::Error>> {
         self.previsor.as_ref().unwrap().salvar(endereco)
     }
 

@@ -3,7 +3,7 @@ use crate::movimento::Movimento;
 use crate::previsor::Previsor;
 
 use tch::{
-    nn::{self, OptimizerConfig, Module, VarStore},
+    nn::{self, Module, OptimizerConfig, VarStore},
     Tensor,
 };
 
@@ -95,12 +95,12 @@ impl Previsor for Neural {
         n.treinar_de_dataset(dataset);
         Ok(n)
     }
-    fn carregar(endereco: &str) -> Result<Self,Box<dyn std::error::Error>> {
+    fn carregar(endereco: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let mut n = Neural::new();
         n.vs.load(endereco)?;
         Ok(n)
     }
-    fn salvar(&self, endereco: &str) -> Result<(), Box<dyn std::error::Error>>{
+    fn salvar(&self, endereco: &str) -> Result<(), Box<dyn std::error::Error>> {
         self.vs.save(endereco)?;
         Ok(())
     }
@@ -149,6 +149,5 @@ impl Previsor for Neural {
 
             opt.backward_step(&loss);
         }
-
     }
 }

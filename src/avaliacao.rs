@@ -54,7 +54,7 @@ pub fn teste_10_pastas<T: Previsor>() {
 
     let mut obtido = Vec::with_capacity(dados.len());
     let tamanho_pasta = dados.len() / 10;
-    let mut acertos = vec![0,0,0,0,0,0,0,0,0,0];
+    let mut acertos = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     for k in 0..10 {
         println!("{}/10", k + 1);
         let index_inicial = k * tamanho_pasta;
@@ -76,24 +76,23 @@ pub fn teste_10_pastas<T: Previsor>() {
             }
         }
     }
-    let taxa_acerto:Vec<f32> = acertos.iter().map(|a| *a as f32/tamanho_pasta as f32).collect();
-    
+    let taxa_acerto: Vec<f32> = acertos
+        .iter()
+        .map(|a| *a as f32 / tamanho_pasta as f32)
+        .collect();
+
     let mean = statistical::mean(&taxa_acerto);
     let std_dev = statistical::standard_deviation(&taxa_acerto, None);
-    let min_val = taxa_acerto.clone().into_iter()
-        .reduce(f32::min)
-        .unwrap();
-    let max_val = taxa_acerto.clone().into_iter()
-        .reduce(f32::max)
-        .unwrap();
-
+    let min_val = taxa_acerto.clone().into_iter().reduce(f32::min).unwrap();
+    let max_val = taxa_acerto.clone().into_iter().reduce(f32::max).unwrap();
 
     println!(
         "taxas: {:?}\nmédia: {}\ndesvio-padrão: {}\nmín: {}\nmáx: {}\n\n{}\n",
         taxa_acerto,
         mean,
         std_dev,
-        min_val,max_val,
+        min_val,
+        max_val,
         MatrizConfusao::new(
             dados.iter().map(|x| x.movimento.unwrap()),
             obtido.into_iter()

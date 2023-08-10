@@ -31,15 +31,16 @@ impl Previsor for Arvore {
         Ok(Arvore(model))
     }
     fn carregar(endereco: &str) -> Result<Self, Box<dyn std::error::Error>>
-        where
-            Self: Sized {
-                if let Ok(contents) = std::fs::read_to_string(endereco) {
-                    match serde_json::from_str(&contents) {
-                        Ok(r) => return Ok(Arvore(r)),
-                        Err(_) => simple_error::bail!("Falha ao interpretar JSON"),
-                    }
-                }
-                simple_error::bail!("Falha ao abrir o arquivo")
+    where
+        Self: Sized,
+    {
+        if let Ok(contents) = std::fs::read_to_string(endereco) {
+            match serde_json::from_str(&contents) {
+                Ok(r) => return Ok(Arvore(r)),
+                Err(_) => simple_error::bail!("Falha ao interpretar JSON"),
+            }
+        }
+        simple_error::bail!("Falha ao abrir o arquivo")
     }
     fn prever(&mut self, entrada: DadoPapete) -> Movimento {
         let norm = Array::from(&vec![Vec::from(entrada.array_normalizado())]);
