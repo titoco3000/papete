@@ -1,3 +1,14 @@
+/*
+O executavel serve para testes ou pra coleta de testes, como uma CLI.
+O que vai fazer depende dos argumentos passados:
+-coleta
+-teste -arvore
+-teste -neural
+-teste -neural -transferencia
+-aval -arvore
+-aval -neural
+*/
+
 mod arvore;
 mod avaliacao;
 mod conexao;
