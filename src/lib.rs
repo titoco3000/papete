@@ -25,29 +25,31 @@ pub unsafe extern "C" fn alocar_papete() -> *mut Papete {
     use std::io::Write;
     use std::path::Path;
 
+    //arquivo da rede neural
     let file_path = "papete.pt";
-    // Create the file if it doesn't exist
+    //se não existe, cria
     if !Path::new(&file_path).exists() {
         fs::File::create(&file_path).unwrap_err_unchecked();
     }
-
+    //inclui arquivo durante build
     let bytes = include_bytes!("..\\papete.pt");
 
-    // Write bytes to the file
+    //escreve o arquivo incluido durante runtime
     match fs::OpenOptions::new().write(true).open(&file_path) {
         Ok(mut file) => {
             if let Err(err) = file.write_all(bytes) {
-                eprintln!("Failed to write to file: {}", err);
+                eprintln!("Falha ao escrever em arquivo: {}", err);
             }
         }
         Err(err) => {
-            eprintln!("Failed to open file: {}", err);
+            eprintln!("Falha ao abrir arquivo: {}", err);
         }
     }
 
+    //carrega rede neural
     let n = Neural::carregar("papete.pt").unwrap();
 
-    // Delete the file
+    //agora que já usou, exclui arquivo
     match fs::remove_file(&file_path) {
         Ok(_) => println!("File deleted: {}", file_path),
         Err(err) => eprintln!("Failed to delete file: {}", err),
@@ -67,6 +69,10 @@ pub unsafe extern "C" fn iniciar_sessao(s: *mut Papete) {
     (*s).iniciar_sessao(0);
 }
 
+/*
+Recebe um ptr de char, supõe que possui capacidade suficiente - uns 100 bytes são suficientes
+Retorna quanto foi ocupado dela.
+*/
 #[no_mangle]
 pub unsafe extern "C" fn listar_conexoes_disponiveis(array_ptr: *mut u8) -> i32 {
     let mut preenchidos = 0;
@@ -88,6 +94,10 @@ pub unsafe extern "C" fn listar_conexoes_disponiveis(array_ptr: *mut u8) -> i32 
     contador
 }
 
+/*
+Recebe um ptr de char, supõe que possui capacidade suficiente - uns 100 bytes são suficientes.
+Retorna quanto foi ocupado dela.
+*/
 #[no_mangle]
 pub unsafe extern "C" fn listar_conexoes_atuais(s: *mut Papete, array_ptr: *mut u8) -> i32 {
     let mut preenchidos = 0;
@@ -109,6 +119,9 @@ pub unsafe extern "C" fn listar_conexoes_atuais(s: *mut Papete, array_ptr: *mut 
     contador
 }
 
+/*
+Conecta na porta especificada
+*/
 #[no_mangle]
 pub unsafe extern "C" fn conectar(s: *mut Papete, porta_chars: *const c_char) -> bool {
     let c_str = unsafe {
