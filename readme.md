@@ -9,7 +9,7 @@ Para instalar bibliotecas necessarias:: na IDE, Ferramentas > Gerenciar Bibliote
 o DLL "papete.dll" inclui funcoes para se conectar com a papete, ler o seu sensor e ler a posição atual (Dorsiflexão, Flexão plantar, Repouso, Eversão ou Inversão).
 
 ## Unity
-Na pasta Assets/Plugins, precisa adicionar "papete.dll", bem como as outras dlls da qual ela depende (asmjit, c10, fbgemm, fbjini, libiomp5md, torch_cpu).
+Na pasta Assets/Plugins, precisa adicionar "papete.dll", bem como as outras dlls da qual ela depende (asmjit, c10, fbgemm, fbjni, libiomp5md, torch_cpu).
 Depois, copiar "papete.cs" para o projeto, para poder usar a classe "Papete".
 
 No exemplo "Carro Papete", é demonstrado isso.
